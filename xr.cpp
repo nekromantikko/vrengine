@@ -56,13 +56,17 @@ namespace XR {
 		const char* const extensionNames[] = {
 		"XR_KHR_vulkan_enable",
 		"XR_KHR_vulkan_enable2",
+        "XR_FB_swapchain_update_state",
+        "XR_FB_foveation",
+        "XR_FB_foveation_configuration",
+        "XR_FB_foveation_vulkan",
 #ifdef NEKRO_DEBUG
 		"XR_EXT_debug_utils"
 		};
-		createInfo.enabledExtensionCount = 3;
+		createInfo.enabledExtensionCount = 7;
 #else
 		};
-		createInfo.enabledExtensionCount = 2;
+		createInfo.enabledExtensionCount = 6;
 #endif
 		createInfo.enabledExtensionNames = extensionNames;
 
@@ -202,10 +206,16 @@ namespace XR {
 			DEBUG_LOG("Found supported swapchain format %d", format);
 		}
 
+        XrSwapchainCreateInfoFoveationFB foveationInfo{};
+        foveationInfo.type = XR_TYPE_SWAPCHAIN_CREATE_INFO_FOVEATION_FB;
+        foveationInfo.next = nullptr;
+        foveationInfo.flags = 0;
+
 		// TODO: Verify that the format we want to use is available
         // TODO: Verify that sample count is ideal
 		XrSwapchainCreateInfo swapchainCreateInfo{};
 		swapchainCreateInfo.type = XR_TYPE_SWAPCHAIN_CREATE_INFO;
+        swapchainCreateInfo.next = &foveationInfo;
 		swapchainCreateInfo.usageFlags = XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT;
 		swapchainCreateInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
 		swapchainCreateInfo.sampleCount = VK_SAMPLE_COUNT_1_BIT;
@@ -219,7 +229,11 @@ namespace XR {
 
 		u32 swapchainImageCount;
 		xrEnumerateSwapchainImages(swapchain, 0, &swapchainImageCount, nullptr);
+        swapchainFoveation = std::vector<XrSwapchainImageFoveationVulkanFB>(swapchainImageCount, { .type = XR_TYPE_SWAPCHAIN_IMAGE_FOVEATION_VULKAN_FB });
 		swapchainImages = std::vector<XrSwapchainImageVulkanKHR>(swapchainImageCount, { .type = XR_TYPE_SWAPCHAIN_IMAGE_VULKAN_KHR });
+        for (int i = 0; i < swapchainImageCount; i++) {
+            swapchainImages[i].next = &swapchainFoveation[i];
+        }
 		xrEnumerateSwapchainImages(swapchain, swapchainImageCount, &swapchainImageCount, (XrSwapchainImageBaseHeader*)swapchainImages.data());
 
 		DEBUG_LOG("XR swapchain image count = %d", swapchainImageCount);
@@ -575,7 +589,7 @@ namespace XR {
 		return true;
 	}
 
-	bool XRInstance::GetVulkanSwapchainImages(VkImage* outImages, u32& outImageCount) const {
+	bool XRInstance::GetVulkanSwapchainImages(VkImage* outImages, VkImage* outFoveationImages, u32& outImageCount) const {
 		if (session == XR_NULL_HANDLE) {
 			DEBUG_LOG("No session exists, cannot get swapchain images");
 			return false;
@@ -586,13 +600,14 @@ namespace XR {
 		if (outImages != nullptr) {
 			for (int i = 0; i < outImageCount; i++) {
 				outImages[i] = swapchainImages[i].image;
+                outFoveationImages[i] = swapchainFoveation[i].image;
 			}
 		}
 
 		return true;
 	}
 
-	bool XRInstance::GetSwapchainDimensions(u32& outWidth, u32& outHeight) const {
+	bool XRInstance::GetSwapchainDimensions(u32& outWidth, u32& outHeight, u32& outFoveationWidth, u32& outFoveationHeight) const {
 		if (hmdSystem.id == XR_NULL_SYSTEM_ID) {
 			DEBUG_LOG("HMD has not been initialized");
 			return false;
@@ -600,6 +615,9 @@ namespace XR {
 
 		outWidth = hmdSystem.viewConfigurationView.recommendedImageRectWidth;
 		outHeight = hmdSystem.viewConfigurationView.recommendedImageRectHeight;
+
+        outFoveationWidth = 45;
+        outFoveationHeight = 50;
 
 		return true;
 	}

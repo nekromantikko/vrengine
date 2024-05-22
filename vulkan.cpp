@@ -98,7 +98,7 @@ namespace Rendering {
 		CreateLogicalDevice(xrInstance);
 		vkGetDeviceQueue(device, primaryQueueFamilyIndex, 0, &primaryQueue);
 
-		xrInstance->GetSwapchainDimensions(xrEyeImageWidth, xrEyeImageHeight);
+		xrInstance->GetSwapchainDimensions(xrEyeImageWidth, xrEyeImageHeight, xrFoveationImageWidth, xrFoveationImageHeight);
 
 		CreateRenderPasses();
 
@@ -192,12 +192,13 @@ namespace Rendering {
 		}
 
 		u32 xrSwapchainImageCount;
-		if (!xrInstance->GetVulkanSwapchainImages(nullptr, xrSwapchainImageCount)) {
+		if (!xrInstance->GetVulkanSwapchainImages(nullptr, nullptr, xrSwapchainImageCount)) {
 			DEBUG_LOG("XR swapchain not available, ignoring");
 			return;
 		}
 		std::vector<VkImage> images(xrSwapchainImageCount);
-		xrInstance->GetVulkanSwapchainImages(images.data(), xrSwapchainImageCount);
+        std::vector<VkImage> foveationImages(xrSwapchainImageCount);
+		xrInstance->GetVulkanSwapchainImages(images.data(), foveationImages.data(), xrSwapchainImageCount);
 
 		xrSwapchainImages = std::vector<SwapchainImage>(xrSwapchainImageCount);
 		// Create image views and framebuffers
@@ -220,9 +221,18 @@ namespace Rendering {
 			imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
 			imageViewCreateInfo.subresourceRange.layerCount = 2;
 
-			VkResult result = vkCreateImageView(device, &imageViewCreateInfo, nullptr, &swap.view);
+            VkResult result = vkCreateImageView(device, &imageViewCreateInfo, nullptr, &swap.view);
+            if (result != VK_SUCCESS) {
+                DEBUG_ERROR("Failed to create image view!");
+            }
+
+            swap.foveationImage = foveationImages[i];
+            imageViewCreateInfo.image = swap.foveationImage;
+            imageViewCreateInfo.format = VK_FORMAT_R8G8_UNORM; // How to find out what format it is??
+
+			result = vkCreateImageView(device, &imageViewCreateInfo, nullptr, &swap.foveationView);
 			if (result != VK_SUCCESS) {
-				DEBUG_ERROR("Failed to create image view!");
+				DEBUG_ERROR("Failed to create foveation image view!");
 			}
 		}
 	}
@@ -317,9 +327,14 @@ namespace Rendering {
 		queueCreateInfo.queueCount = 1;
 		queueCreateInfo.pQueuePriorities = &queuePriority;
 
+        VkPhysicalDeviceFragmentDensityMapFeaturesEXT ffr{};
+        ffr.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_FEATURES_EXT;
+        ffr.pNext = nullptr;
+        ffr.fragmentDensityMap = true;
+
 		VkPhysicalDeviceImagelessFramebufferFeatures imagelessFeatures{};
 		imagelessFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGELESS_FRAMEBUFFER_FEATURES;
-		imagelessFeatures.pNext = nullptr;
+		imagelessFeatures.pNext = &ffr;
 		imagelessFeatures.imagelessFramebuffer = true;
 
 		VkPhysicalDeviceMultiviewFeatures multiview{};
@@ -363,7 +378,8 @@ namespace Rendering {
 		
 		extensionNames.push_back("VK_KHR_image_format_list");
 		extensionNames.push_back("VK_KHR_imageless_framebuffer");
-		createInfo.enabledExtensionCount += 2;
+        extensionNames.push_back("VK_EXT_fragment_density_map");
+		createInfo.enabledExtensionCount += 3;
 
 		createInfo.ppEnabledExtensionNames = (char**)extensionNames.data();
 
@@ -375,24 +391,9 @@ namespace Rendering {
 	}
 
 	void Vulkan::CreateForwardRenderPass() {
-		// Multipass
-		const u32 viewMask = 0b00000011;
-		const u32 correlationMask = 0b00000011;
-
-		VkRenderPassMultiviewCreateInfo multiviewInfo{};
-		multiviewInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO;
-		multiviewInfo.pNext = nullptr;
-		multiviewInfo.subpassCount = 1;
-		multiviewInfo.pViewMasks = &viewMask;
-		multiviewInfo.dependencyCount = 0;
-		multiviewInfo.pViewOffsets = nullptr;
-		multiviewInfo.correlationMaskCount = 1;
-		multiviewInfo.pCorrelationMasks = &correlationMask;
-
 		VkRenderPassCreateInfo createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-		createInfo.pNext = &multiviewInfo;
-		createInfo.attachmentCount = 3;
+		createInfo.attachmentCount = 4;
 
 		VkAttachmentDescription attachmentDescription{};
 		attachmentDescription.flags = 0;
@@ -430,7 +431,19 @@ namespace Rendering {
 		colorResolveDescription.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		colorResolveDescription.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-		VkAttachmentDescription attachments[3] = { attachmentDescription, depthDescription, colorResolveDescription };
+        VkAttachmentDescription foveationDescription{};
+        foveationDescription.flags = 0;
+        foveationDescription.format = VK_FORMAT_R8G8_UNORM;
+        foveationDescription.format = VK_FORMAT_R8G8_UNORM;
+        foveationDescription.samples = VK_SAMPLE_COUNT_1_BIT;
+        foveationDescription.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        foveationDescription.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        foveationDescription.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        foveationDescription.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        foveationDescription.initialLayout = VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT;
+        foveationDescription.finalLayout = VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT;
+
+		VkAttachmentDescription attachments[4] = { attachmentDescription, depthDescription, colorResolveDescription, foveationDescription };
 
 		createInfo.pAttachments = attachments;
 		createInfo.subpassCount = 1;
@@ -446,6 +459,30 @@ namespace Rendering {
 		VkAttachmentReference colorResolveDescriptionRef{};
 		colorResolveDescriptionRef.attachment = 2;
 		colorResolveDescriptionRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+        VkAttachmentReference foveationDescriptionRef{};
+        foveationDescriptionRef.attachment = 3;
+        foveationDescriptionRef.layout = VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT;
+
+        // Foveation
+        VkRenderPassFragmentDensityMapCreateInfoEXT ffr{};
+        ffr.sType = VK_STRUCTURE_TYPE_RENDER_PASS_FRAGMENT_DENSITY_MAP_CREATE_INFO_EXT;
+        ffr.pNext = nullptr;
+        ffr.fragmentDensityMapAttachment = foveationDescriptionRef;
+
+        // Multiview
+        const u32 viewMask = 0b00000011;
+        const u32 correlationMask = 0b00000011;
+
+        VkRenderPassMultiviewCreateInfo multiviewInfo{};
+        multiviewInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO;
+        multiviewInfo.pNext = &ffr;
+        multiviewInfo.subpassCount = 1;
+        multiviewInfo.pViewMasks = &viewMask;
+        multiviewInfo.dependencyCount = 0;
+        multiviewInfo.pViewOffsets = nullptr;
+        multiviewInfo.correlationMaskCount = 1;
+        multiviewInfo.pCorrelationMasks = &correlationMask;
 
 		VkSubpassDescription subpassDescription{};
 		subpassDescription.flags = 0;
@@ -470,6 +507,7 @@ namespace Rendering {
 		createInfo.pSubpasses = &subpassDescription;
 		createInfo.dependencyCount = 1;
 		createInfo.pDependencies = &dependency;
+        createInfo.pNext = &multiviewInfo;
 
 		VkResult err = vkCreateRenderPass(device, &createInfo, nullptr, &forwardRenderPass);
 		if (err != VK_SUCCESS) {
@@ -545,8 +583,9 @@ namespace Rendering {
 
 		VkFormat colorAttachmentFormat = VK_FORMAT_R8G8B8A8_SRGB;
 		VkFormat depthAttachmentFormat = VK_FORMAT_D32_SFLOAT;
+        VkFormat foveationAttachmentFormat = VK_FORMAT_R8G8_UNORM;
 
-		VkFramebufferAttachmentImageInfo attachmentInfo[3]{};
+		VkFramebufferAttachmentImageInfo attachmentInfo[4]{};
 
 		attachmentInfo[0].sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO;
 		attachmentInfo[0].pNext = nullptr;
@@ -578,10 +617,20 @@ namespace Rendering {
 		attachmentInfo[2].viewFormatCount = 1;
 		attachmentInfo[2].pViewFormats = &colorAttachmentFormat;
 
+        attachmentInfo[3].sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO;
+        attachmentInfo[3].pNext = nullptr;
+        attachmentInfo[3].flags = 0;
+        attachmentInfo[3].usage = VK_IMAGE_USAGE_FRAGMENT_DENSITY_MAP_BIT_EXT;
+        attachmentInfo[3].width = xrFoveationImageWidth;
+        attachmentInfo[3].height = xrFoveationImageHeight;
+        attachmentInfo[3].layerCount = 2;
+        attachmentInfo[3].viewFormatCount = 1;
+        attachmentInfo[3].pViewFormats = &foveationAttachmentFormat;
+
 		VkFramebufferAttachmentsCreateInfo attachmentsCreateInfo{};
 		attachmentsCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENTS_CREATE_INFO;
 		attachmentsCreateInfo.pNext = nullptr;
-		attachmentsCreateInfo.attachmentImageInfoCount = 3;
+		attachmentsCreateInfo.attachmentImageInfoCount = 4;
 		attachmentsCreateInfo.pAttachmentImageInfos = attachmentInfo;
 
 		VkFramebufferCreateInfo framebufferInfo{};
@@ -589,7 +638,7 @@ namespace Rendering {
 		framebufferInfo.pNext = &attachmentsCreateInfo;
 		framebufferInfo.flags = VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT;
 		framebufferInfo.renderPass = forwardRenderPass;
-		framebufferInfo.attachmentCount = 3;
+		framebufferInfo.attachmentCount = 4;
 		framebufferInfo.pAttachments = nullptr;
 		framebufferInfo.width = xrEyeImageWidth;
 		framebufferInfo.height = xrEyeImageHeight;
@@ -1747,13 +1796,14 @@ namespace Rendering {
 		VkImageView attachments[] = {
 			colorAttachment.view,
 			depthAttachment.view,
-			swap.view
+			swap.view,
+            swap.foveationView
 		};
 
 		VkRenderPassAttachmentBeginInfo attachmentInfo{};
 		attachmentInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO;
 		attachmentInfo.pNext = nullptr;
-		attachmentInfo.attachmentCount = 3;
+		attachmentInfo.attachmentCount = 4;
 		attachmentInfo.pAttachments = attachments;
 
 		VkRenderPassBeginInfo renderPassInfo{};
@@ -1764,8 +1814,8 @@ namespace Rendering {
 		renderPassInfo.renderArea.offset = { 0, 0 };
 		renderPassInfo.renderArea.extent = extent;
 
-		VkClearValue clearColors[3] = { {0,0,0,1}, {1.0f, 0}, {0,0,0,1} };
-		renderPassInfo.clearValueCount = 3;
+		VkClearValue clearColors[4] = { {0,0,0,1}, {1.0f, 0}, {0,0,0,1}, {0, 0} };
+		renderPassInfo.clearValueCount = 4;
 		renderPassInfo.pClearValues = clearColors;
 
 		vkCmdBeginRenderPass(frame.cmdBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);

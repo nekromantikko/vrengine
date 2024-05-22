@@ -113,6 +113,8 @@ namespace Rendering {
 		struct SwapchainImage {
 			VkImage image;
 			VkImageView view;
+            VkImage foveationImage;
+            VkImageView foveationView;
 		};
 
 		struct FrameData {
@@ -178,6 +180,7 @@ namespace Rendering {
 		VkCommandPool tempCommandPool; // Used for allocating temporary cmd buffers
 
 		u32 xrEyeImageWidth, xrEyeImageHeight;
+        u32 xrFoveationImageWidth, xrFoveationImageHeight;
 		std::vector<SwapchainImage> xrSwapchainImages;
 
 		VkDescriptorPool descriptorPool;

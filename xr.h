@@ -53,10 +53,10 @@ namespace XR {
 		VkPhysicalDevice GetVulkanPhysicalDevice(const VkInstance instance) const;
         VkDevice GetVulkanLogicalDevice(VkPhysicalDevice vulkanPhysicalDevice, VkDeviceCreateInfo* vulkanCreateInfo) const;
 		bool GetVulkanDeviceRequirements(VulkanDeviceRequirements& outRequirements) const;
-		bool GetVulkanSwapchainImages(VkImage* outImages, u32& outImageCount) const;
+		bool GetVulkanSwapchainImages(VkImage* outImages, VkImage* outFoveationImages, u32& outImageCount) const;
 
 		// Generic swapchain thingz
-		bool GetSwapchainDimensions(u32& outWidth, u32& outHeight) const;
+		bool GetSwapchainDimensions(u32& outWidth, u32& outHeight, u32& outFoveationWidth, u32& outFoveationHeight) const;
 		bool GetNextSwapchainImage(u32& outIndex) const;
 		bool ReleaseSwapchainImage() const;
 	private:
@@ -83,6 +83,7 @@ namespace XR {
 
 		XrSwapchain swapchain = XR_NULL_HANDLE;
 		std::vector<XrSwapchainImageVulkanKHR> swapchainImages;
+        std::vector<XrSwapchainImageFoveationVulkanFB> swapchainFoveation;
 
 #ifdef NEKRO_DEBUG
 		void SetupDebugLogging();
