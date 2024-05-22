@@ -60,7 +60,8 @@
                 <category android:name="com.oculus.intent.category.VR" />
             </intent-filter>
         </activity>
-        <meta-data android:name="com.oculus.supportedDevices" android:value="quest|quest2"/>
+        <meta-data android:name="com.oculus.supportedDevices" android:value="quest|quest2|cambria"/>
+        <meta-data android:name="com.oculus.intent.category.VR" android:value="vr_only"/>
     </application>
 
 </manifest>

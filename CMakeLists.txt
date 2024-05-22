@@ -23,14 +23,34 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(OpenXR)
 
+FetchContent_Declare(
+        GLM
+        URL_HASH MD5=7d235d4813a2e7b1e10cc711b8e25213
+        URL https://github.com/g-truc/glm/releases/download/1.0.1/glm-1.0.1-light.zip
+        SOURCE_DIR
+        glm
+)
+FetchContent_MakeAvailable(GLM)
+
 # Files
 set(SOURCES
         "main.cpp"
-        "system.cpp")
+        "system.cpp"
+        "renderer.cpp"
+        "vulkan.cpp"
+        "xr.cpp")
 
 set (HEADERS
         "typedef.h"
-        "system.h")
+        "system.h"
+        "material.h"
+        "math.h"
+        "memory_pool.h"
+        "quaternion.h"
+        "renderer.h"
+        "rendering.h"
+        "vulkan.h"
+        "xr.h")
 
 set (GLSL_SHADERS
         "shaders/vert.glsl"
@@ -38,11 +58,11 @@ set (GLSL_SHADERS
 
 add_library(${PROJECT_NAME} SHARED ${SOURCES})
 target_include_directories(${PROJECT_NAME} PRIVATE
-        # In this repo
-        ../Common/
         # From OpenXR repo
         "${openxr_SOURCE_DIR}/src/common"
         "${openxr_SOURCE_DIR}/external/include"
+        # From glm repo
+        "${glm_SOURCE_DIR}"
         )
 
 # export ANativeActivity_onCreate for java to call.
@@ -63,6 +83,8 @@ target_compile_options(${PROJECT_NAME} PRIVATE -Wno-cast-calling-convention)
 find_library(vulkan-lib vulkan)
 target_include_directories(${PROJECT_NAME} PUBLIC ${ANDROID_NDK}/sources/third_party/vulkan/src/include)
 target_link_libraries(${PROJECT_NAME} ${vulkan-lib})
+
+# set(VULKAN_VALIDATION_LAYER_DEST "${CMAKE_CURRENT_SORUCE_DIR}/app/src/main/jniLibs)
 
 # Compile shaders
 set(SHADER_DEST "${CMAKE_CURRENT_SOURCE_DIR}/app/src/main/assets/shaders")

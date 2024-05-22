@@ -3,16 +3,14 @@
 #include <stdarg.h>
 #include <iostream>
 #include <fstream>
-#include <android/log.h>
-#include <android/asset_manager.h>
 
-void Print(const char* fmt, ...) {
+void Print(int prio, const char* fmt, ...) {
     char s[1025];
     va_list args;
     va_start(args, fmt);
     vsprintf(s, fmt, args);
     va_end(args);
-    __android_log_write(ANDROID_LOG_DEBUG, "vrengine", s);
+    __android_log_write(prio, "vrengine", s);
 }
 
 // Memory is owned by caller
