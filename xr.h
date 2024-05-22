@@ -49,9 +49,9 @@ namespace XR {
 
 		// Vulkan implementation
 		bool GetVulkanInstanceRequirements(VulkanInstanceRequirements& outRequirements) const;
-        VkInstance GetVulkanInstance(VkInstanceCreateInfo* vulkanCreateInfo) const;
+		VkInstance GetVulkanInstance(VkInstanceCreateInfo* vulkanCreateInfo) const;
 		VkPhysicalDevice GetVulkanPhysicalDevice(const VkInstance instance) const;
-        VkDevice GetVulkanLogicalDevice(VkPhysicalDevice vulkanPhysicalDevice, VkDeviceCreateInfo* vulkanCreateInfo) const;
+		VkDevice GetVulkanLogicalDevice(VkPhysicalDevice vulkanPhysicalDevice, VkDeviceCreateInfo* vulkanCreateInfo) const;
 		bool GetVulkanDeviceRequirements(VulkanDeviceRequirements& outRequirements) const;
 		bool GetVulkanSwapchainImages(VkImage* outImages, u32& outImageCount) const;
 
@@ -63,7 +63,7 @@ namespace XR {
 		struct System {
 			XrSystemId id = XR_NULL_SYSTEM_ID;
 			XrSystemProperties properties;
-            XrViewConfigurationView viewConfigurationView;
+			XrViewConfigurationView viewConfigurationView;
 		};
 
 		void StartSession();

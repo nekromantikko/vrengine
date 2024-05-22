@@ -24,17 +24,17 @@ namespace Rendering {
 		VkInstanceCreateInfo createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 		createInfo.pApplicationInfo = &appInfo;
-        createInfo.enabledLayerCount = 0;
-        createInfo.enabledExtensionCount = 0;
+		createInfo.enabledLayerCount = 0;
+		createInfo.enabledExtensionCount = 0;
 
-        u32 availableLayerCount;
-        vkEnumerateInstanceLayerProperties(&availableLayerCount, nullptr);
-        std::vector<VkLayerProperties> availableLayerProperties(availableLayerCount);
-        vkEnumerateInstanceLayerProperties(&availableLayerCount, availableLayerProperties.data());
+		u32 availableLayerCount;
+		vkEnumerateInstanceLayerProperties(&availableLayerCount, nullptr);
+		std::vector<VkLayerProperties> availableLayerProperties(availableLayerCount);
+		vkEnumerateInstanceLayerProperties(&availableLayerCount, availableLayerProperties.data());
 
-        for (auto layer : availableLayerProperties) {
-            DEBUG_LOG("Available layer: %s", layer.layerName);
-        }
+		for (auto layer : availableLayerProperties) {
+				DEBUG_LOG("Available layer: %s", layer.layerName);
+		}
 
 		// Enable validation layers for debug
 #ifdef NEKRO_DEBUG
@@ -66,17 +66,17 @@ namespace Rendering {
 		createInfo.enabledExtensionCount = extensionNames.size();
 		createInfo.ppEnabledExtensionNames = (char**)extensionNames.data();
 
-        vkInstance = xrInstance->GetVulkanInstance(&createInfo);
+		vkInstance = xrInstance->GetVulkanInstance(&createInfo);
 		/*VkResult result = vkCreateInstance(&createInfo, nullptr, &vkInstance);
-        if (result != VK_SUCCESS) {
-            DEBUG_ERROR("Instance creation failed with error code %d", result);
-        }*/
+		if (result != VK_SUCCESS) {
+				DEBUG_ERROR("Instance creation failed with error code %d", result);
+		}*/
 
-        // Get proc addresses
-        vkGetPhysicalDeviceProperties2 = (PFN_vkGetPhysicalDeviceProperties2)vkGetInstanceProcAddr(vkInstance, "vkGetPhysicalDeviceProperties2");
-        vkGetPhysicalDeviceFeatures2 = (PFN_vkGetPhysicalDeviceFeatures2)vkGetInstanceProcAddr(vkInstance, "vkGetPhysicalDeviceFeatures2");
-        vkGetImageMemoryRequirements2 = (PFN_vkGetImageMemoryRequirements2)vkGetInstanceProcAddr(vkInstance, "vkGetImageMemoryRequirements2");
-        vkGetBufferMemoryRequirements2 = (PFN_vkGetBufferMemoryRequirements2)vkGetInstanceProcAddr(vkInstance, "vkGetBufferMemoryRequirements2");
+		// Get proc addresses
+		vkGetPhysicalDeviceProperties2 = (PFN_vkGetPhysicalDeviceProperties2)vkGetInstanceProcAddr(vkInstance, "vkGetPhysicalDeviceProperties2");
+		vkGetPhysicalDeviceFeatures2 = (PFN_vkGetPhysicalDeviceFeatures2)vkGetInstanceProcAddr(vkInstance, "vkGetPhysicalDeviceFeatures2");
+		vkGetImageMemoryRequirements2 = (PFN_vkGetImageMemoryRequirements2)vkGetInstanceProcAddr(vkInstance, "vkGetImageMemoryRequirements2");
+		vkGetBufferMemoryRequirements2 = (PFN_vkGetBufferMemoryRequirements2)vkGetInstanceProcAddr(vkInstance, "vkGetBufferMemoryRequirements2");
 
 		VkPhysicalDevice physicalDeviceCandidate = xrInstance->GetVulkanPhysicalDevice(vkInstance);
 		u32 queueFamilyIndex;
@@ -367,7 +367,7 @@ namespace Rendering {
 
 		createInfo.ppEnabledExtensionNames = (char**)extensionNames.data();
 
-        device = xrInstance->GetVulkanLogicalDevice(physicalDevice, &createInfo);
+		device = xrInstance->GetVulkanLogicalDevice(physicalDevice, &createInfo);
 		/*VkResult err = vkCreateDevice(physicalDevice, &createInfo, nullptr, &device);
 		if (err != VK_SUCCESS) {
 			DEBUG_ERROR("Failed to create logical device!");
@@ -844,7 +844,7 @@ namespace Rendering {
 		createInfo.codeSize = size;
 		createInfo.pCode = (const u32*)code;
 
-        DEBUG_LOG("Creating shader module with size %d", size);
+		DEBUG_LOG("Creating shader module with size %d", size);
 
 		VkShaderModule module;
 		VkResult err = vkCreateShaderModule(device, &createInfo, nullptr, &module);

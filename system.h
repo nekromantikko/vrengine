@@ -7,7 +7,7 @@
 #undef DEBUG_PRINT
 #ifdef NEKRO_DEBUG
 #define DEBUG_PRINT(prio, fmt, ...) Print(prio, "%s: " fmt " (%s, line %d)\n", \
-    __func__, ##__VA_ARGS__, __FILE__, __LINE__)
+	__func__, ##__VA_ARGS__, __FILE__, __LINE__)
 #else
 #define DEBUG_PRINT(prio, fmt, ...)
 #endif

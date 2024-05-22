@@ -7,14 +7,14 @@
 namespace XR {
 	XRInstance::XRInstance(android_app *app) {
 
-        PFN_xrInitializeLoaderKHR xrInitializeLoaderKhr = nullptr;
-        xrGetInstanceProcAddr(XR_NULL_HANDLE, "xrInitializeLoaderKHR", (PFN_xrVoidFunction*)&xrInitializeLoaderKhr);
+		PFN_xrInitializeLoaderKHR xrInitializeLoaderKhr = nullptr;
+		xrGetInstanceProcAddr(XR_NULL_HANDLE, "xrInitializeLoaderKHR", (PFN_xrVoidFunction*)&xrInitializeLoaderKhr);
 
-        XrLoaderInitInfoAndroidKHR androidInfo{};
-        androidInfo.type = XR_TYPE_LOADER_INIT_INFO_ANDROID_KHR;
-        androidInfo.applicationVM = app->activity->vm;
-        androidInfo.applicationContext = app->activity->clazz;
-        xrInitializeLoaderKhr((XrLoaderInitInfoBaseHeaderKHR*)&androidInfo);
+		XrLoaderInitInfoAndroidKHR androidInfo{};
+		androidInfo.type = XR_TYPE_LOADER_INIT_INFO_ANDROID_KHR;
+		androidInfo.applicationVM = app->activity->vm;
+		androidInfo.applicationContext = app->activity->clazz;
+		xrInitializeLoaderKhr((XrLoaderInitInfoBaseHeaderKHR*)&androidInfo);
 
 		XrApplicationInfo appInfo{};
 		strcpy(appInfo.applicationName, "Test");
@@ -48,7 +48,7 @@ namespace XR {
 		createInfo.next = nullptr;
 		createInfo.createFlags = 0;
 		createInfo.applicationInfo = appInfo;
-        // TODO: Fix validation layers
+		// TODO: Fix validation layers
 		// createInfo.enabledApiLayerCount = 1;
 		// createInfo.enabledApiLayerNames = &validationLayerName;
 
@@ -79,7 +79,7 @@ namespace XR {
 
 	XRInstance::~XRInstance() {
 #ifdef NEKRO_DEBUG
-        CleanupDebugLogging();
+		CleanupDebugLogging();
 #endif
 
 		xrDestroyInstance(instance);
@@ -128,32 +128,32 @@ namespace XR {
 
 		// Check for proper tracking support
 		if (!system.properties.trackingProperties.orientationTracking || !system.properties.trackingProperties.positionTracking) {
-            DEBUG_LOG("HMD does not support both position and orientation tracking");
-            return false;
-        }
+			DEBUG_LOG("HMD does not support both position and orientation tracking");
+			return false;
+		}
 
-        // Get view configuration:
-        // TODO: Verify that stereo is available
-        u32 viewConfigurationCount;
-        xrEnumerateViewConfigurations(instance, system.id, 0, &viewConfigurationCount, nullptr);
-        std::vector<XrViewConfigurationType> viewConfigurations(viewConfigurationCount);
-        xrEnumerateViewConfigurations(instance, system.id, viewConfigurationCount, &viewConfigurationCount, viewConfigurations.data());
+		// Get view configuration:
+		// TODO: Verify that stereo is available
+		u32 viewConfigurationCount;
+		xrEnumerateViewConfigurations(instance, system.id, 0, &viewConfigurationCount, nullptr);
+		std::vector<XrViewConfigurationType> viewConfigurations(viewConfigurationCount);
+		xrEnumerateViewConfigurations(instance, system.id, viewConfigurationCount, &viewConfigurationCount, viewConfigurations.data());
 
-        for (auto& viewConfiguration : viewConfigurations) {
-            DEBUG_LOG("Found view configuration: %d", viewConfiguration);
-        }
+		for (auto& viewConfiguration : viewConfigurations) {
+			DEBUG_LOG("Found view configuration: %d", viewConfiguration);
+		}
 
-        u32 viewConfigurationViewCount;
-        xrEnumerateViewConfigurationViews(instance, system.id, XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO, 0, &viewConfigurationViewCount, nullptr);
-        std::vector<XrViewConfigurationView> viewConfigurationViews(viewConfigurationViewCount, { .type = XR_TYPE_VIEW_CONFIGURATION_VIEW });
-        xrEnumerateViewConfigurationViews(instance, system.id, XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO, viewConfigurationViewCount, &viewConfigurationViewCount, viewConfigurationViews.data());
+		u32 viewConfigurationViewCount;
+		xrEnumerateViewConfigurationViews(instance, system.id, XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO, 0, &viewConfigurationViewCount, nullptr);
+		std::vector<XrViewConfigurationView> viewConfigurationViews(viewConfigurationViewCount, { .type = XR_TYPE_VIEW_CONFIGURATION_VIEW });
+		xrEnumerateViewConfigurationViews(instance, system.id, XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO, viewConfigurationViewCount, &viewConfigurationViewCount, viewConfigurationViews.data());
 
-        for (auto& view : viewConfigurationViews) {
-            DEBUG_LOG("Found view with recommended dimensions (%d, %d) and swapchain sample count %d", view.recommendedImageRectWidth, view.recommendedImageRectHeight, view.recommendedSwapchainSampleCount);
-        }
+		for (auto& view : viewConfigurationViews) {
+			DEBUG_LOG("Found view with recommended dimensions (%d, %d) and swapchain sample count %d", view.recommendedImageRectWidth, view.recommendedImageRectHeight, view.recommendedSwapchainSampleCount);
+		}
 
-        // There's technically two views but they should have the same configuration because it's multiview
-        system.viewConfigurationView = viewConfigurationViews[0];
+		// There's technically two views but they should have the same configuration because it's multiview
+		system.viewConfigurationView = viewConfigurationViews[0];
 
 		hmdSystem = system;
 		return true;
@@ -203,7 +203,7 @@ namespace XR {
 		}
 
 		// TODO: Verify that the format we want to use is available
-        // TODO: Verify that sample count is ideal
+		// TODO: Verify that sample count is ideal
 		XrSwapchainCreateInfo swapchainCreateInfo{};
 		swapchainCreateInfo.type = XR_TYPE_SWAPCHAIN_CREATE_INFO;
 		swapchainCreateInfo.usageFlags = XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT;
@@ -481,38 +481,38 @@ namespace XR {
 		return true;
 	}
 
-    VkInstance XRInstance::GetVulkanInstance(VkInstanceCreateInfo* vulkanCreateInfo) const {
-        if (hmdSystem.id == XR_NULL_SYSTEM_ID) {
-            DEBUG_LOG("HMD has not been initialized");
-            return VK_NULL_HANDLE;
-        }
+	VkInstance XRInstance::GetVulkanInstance(VkInstanceCreateInfo* vulkanCreateInfo) const {
+		if (hmdSystem.id == XR_NULL_SYSTEM_ID) {
+			DEBUG_LOG("HMD has not been initialized");
+			return VK_NULL_HANDLE;
+		}
 
-        PFN_xrCreateVulkanInstanceKHR xrCreateVulkanInstanceKHR;
-        XrResult err = xrGetInstanceProcAddr(instance, "xrCreateVulkanInstanceKHR", (PFN_xrVoidFunction*)&xrCreateVulkanInstanceKHR);
-        if (err != XR_SUCCESS) {
-            DEBUG_ERROR("Failed to get xrCreateVulkanInstanceKHR proc address with code %d", err);
-        }
+		PFN_xrCreateVulkanInstanceKHR xrCreateVulkanInstanceKHR;
+		XrResult err = xrGetInstanceProcAddr(instance, "xrCreateVulkanInstanceKHR", (PFN_xrVoidFunction*)&xrCreateVulkanInstanceKHR);
+		if (err != XR_SUCCESS) {
+			DEBUG_ERROR("Failed to get xrCreateVulkanInstanceKHR proc address with code %d", err);
+		}
 
-        XrVulkanInstanceCreateInfoKHR createInfo{};
-        createInfo.type = XR_TYPE_VULKAN_INSTANCE_CREATE_INFO_KHR;
-        createInfo.next = nullptr;
-        createInfo.systemId = hmdSystem.id;
-        createInfo.createFlags = 0;
-        createInfo.pfnGetInstanceProcAddr = &vkGetInstanceProcAddr;
-        createInfo.vulkanCreateInfo = vulkanCreateInfo;
-        createInfo.vulkanAllocator = nullptr;
+		XrVulkanInstanceCreateInfoKHR createInfo{};
+		createInfo.type = XR_TYPE_VULKAN_INSTANCE_CREATE_INFO_KHR;
+		createInfo.next = nullptr;
+		createInfo.systemId = hmdSystem.id;
+		createInfo.createFlags = 0;
+		createInfo.pfnGetInstanceProcAddr = &vkGetInstanceProcAddr;
+		createInfo.vulkanCreateInfo = vulkanCreateInfo;
+		createInfo.vulkanAllocator = nullptr;
 
-        VkInstance result;
-        VkResult vkErr;
-        err = xrCreateVulkanInstanceKHR(instance, &createInfo, &result, &vkErr);
-        if (err != XR_SUCCESS) {
-            DEBUG_ERROR("Vulkan instance creation failed with XR error code %d", err);
-        } else if (vkErr != VK_SUCCESS) {
-            DEBUG_ERROR("Vulkan instance creation failed with Vulkan error code %d", err);
-        }
+		VkInstance result;
+		VkResult vkErr;
+		err = xrCreateVulkanInstanceKHR(instance, &createInfo, &result, &vkErr);
+		if (err != XR_SUCCESS) {
+			DEBUG_ERROR("Vulkan instance creation failed with XR error code %d", err);
+		} else if (vkErr != VK_SUCCESS) {
+			DEBUG_ERROR("Vulkan instance creation failed with Vulkan error code %d", err);
+		}
 
-        return result;
-    }
+		return result;
+	}
 
 	VkPhysicalDevice XRInstance::GetVulkanPhysicalDevice(const VkInstance vkInstance) const {
 		if (hmdSystem.id == XR_NULL_SYSTEM_ID) {
@@ -525,38 +525,38 @@ namespace XR {
 
 		VkPhysicalDevice result;
 		XrResult err = xrGetVulkanGraphicsDeviceKHR(instance, hmdSystem.id, vkInstance, &result);
-        if (err != XR_SUCCESS) {
-            DEBUG_ERROR("Failed to get physical device with error code %d", err);
-        }
+			if (err != XR_SUCCESS) {
+				DEBUG_ERROR("Failed to get physical device with error code %d", err);
+			}
 
 		return result;
 	}
 
-    VkDevice XRInstance::GetVulkanLogicalDevice(VkPhysicalDevice vulkanPhysicalDevice, VkDeviceCreateInfo* vulkanCreateInfo) const {
-        PFN_xrCreateVulkanDeviceKHR xrCreateVulkanDeviceKHR;
-        xrGetInstanceProcAddr(instance, "xrCreateVulkanDeviceKHR", (PFN_xrVoidFunction*)&xrCreateVulkanDeviceKHR);
+	VkDevice XRInstance::GetVulkanLogicalDevice(VkPhysicalDevice vulkanPhysicalDevice, VkDeviceCreateInfo* vulkanCreateInfo) const {
+		PFN_xrCreateVulkanDeviceKHR xrCreateVulkanDeviceKHR;
+		xrGetInstanceProcAddr(instance, "xrCreateVulkanDeviceKHR", (PFN_xrVoidFunction*)&xrCreateVulkanDeviceKHR);
 
-        XrVulkanDeviceCreateInfoKHR createInfo{};
-        createInfo.type = XR_TYPE_VULKAN_DEVICE_CREATE_INFO_KHR;
-        createInfo.next = nullptr;
-        createInfo.systemId = hmdSystem.id;
-        createInfo.createFlags = 0;
-        createInfo.pfnGetInstanceProcAddr = &vkGetInstanceProcAddr;
-        createInfo.vulkanPhysicalDevice = vulkanPhysicalDevice;
-        createInfo.vulkanCreateInfo = vulkanCreateInfo;
-        createInfo.vulkanAllocator = nullptr;
+		XrVulkanDeviceCreateInfoKHR createInfo{};
+		createInfo.type = XR_TYPE_VULKAN_DEVICE_CREATE_INFO_KHR;
+		createInfo.next = nullptr;
+		createInfo.systemId = hmdSystem.id;
+		createInfo.createFlags = 0;
+		createInfo.pfnGetInstanceProcAddr = &vkGetInstanceProcAddr;
+		createInfo.vulkanPhysicalDevice = vulkanPhysicalDevice;
+		createInfo.vulkanCreateInfo = vulkanCreateInfo;
+		createInfo.vulkanAllocator = nullptr;
 
-        VkDevice result;
-        VkResult vkErr;
-        XrResult err = xrCreateVulkanDeviceKHR(instance, &createInfo, &result, &vkErr);
-        if (err != XR_SUCCESS) {
-            DEBUG_ERROR("Vulkan logical device creation failed with XR error code %d", err);
-        } else if (vkErr != VK_SUCCESS) {
-            DEBUG_ERROR("Vulkan logical device creation failed with Vulkan error code %d", err);
-        }
+		VkDevice result;
+		VkResult vkErr;
+		XrResult err = xrCreateVulkanDeviceKHR(instance, &createInfo, &result, &vkErr);
+		if (err != XR_SUCCESS) {
+			DEBUG_ERROR("Vulkan logical device creation failed with XR error code %d", err);
+		} else if (vkErr != VK_SUCCESS) {
+			DEBUG_ERROR("Vulkan logical device creation failed with Vulkan error code %d", err);
+		}
 
-        return result;
-    }
+		return result;
+	}
 
 	bool XRInstance::GetVulkanDeviceRequirements(VulkanDeviceRequirements& outRequirements) const {
 		if (hmdSystem.id == XR_NULL_SYSTEM_ID) {
