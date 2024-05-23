@@ -8,6 +8,9 @@
 #include "xr.h"
 #include "astc.h"
 
+#define CGLTF_IMPLEMENTATION
+#include "cgltf.h"
+
 static bool running;
 static Rendering::Renderer* rendererPtr; // Stupid hack...
 
@@ -15,6 +18,115 @@ struct AndroidAppState {
 	ANativeWindow* nativeWindow = nullptr;
 	bool resumed = false;
 };
+
+size_t ProcessVertexBuffer(cgltf_accessor* accessor, u8** pOutBuffer, size_t outElementSize, u8* bufferData) {
+	cgltf_buffer_view* bufView = accessor->buffer_view;
+	cgltf_buffer* buffer = bufView->buffer;
+
+	size_t componentCount = 0;
+	switch (accessor->type) {
+		case cgltf_type_vec2:
+			componentCount = 2;
+			break;
+		case cgltf_type_vec3:
+			componentCount = 3;
+			break;
+		case cgltf_type_vec4:
+			componentCount = 4;
+			break;
+		case cgltf_type_mat2:
+			componentCount = 4;
+			break;
+		case cgltf_type_mat3:
+			componentCount = 9;
+			break;
+		case cgltf_type_mat4:
+			componentCount = 16;
+			break;
+		case cgltf_type_scalar:
+			componentCount = 1;
+			break;
+		default:
+			DEBUG_ERROR("Unknown accessor type %d", accessor->type);
+			break;
+	}
+
+	size_t componentSize = 0;
+	switch (accessor->component_type) {
+		case cgltf_component_type_r_8:
+			componentSize = sizeof(s8);
+			break;
+		case cgltf_component_type_r_8u:
+			componentSize = sizeof(u8);
+			break;
+		case cgltf_component_type_r_16:
+			componentSize = sizeof(s16);
+			break;
+		case cgltf_component_type_r_16u:
+			componentSize = sizeof(u16);
+			break;
+		case cgltf_component_type_r_32u:
+			componentSize = sizeof(u32);
+			break;
+		case cgltf_component_type_r_32f:
+			componentSize = sizeof(r32);
+			break;
+		default:
+			DEBUG_ERROR("Unknown accessor component type %d", accessor->component_type);
+			break;
+	}
+
+	size_t elementSize = componentCount * componentSize;
+	*pOutBuffer = (u8*)calloc(accessor->count, outElementSize);
+
+	size_t srcStride = bufView->stride == 0 ? elementSize : bufView->stride;
+	size_t copySize = std::min(elementSize, outElementSize);
+	if (elementSize > outElementSize) {
+		DEBUG_LOG("Out element size %d is smaller than %d, clamping will occur", outElementSize, elementSize);
+	}
+
+	const u8* pSrc = bufferData + bufView->offset + accessor->offset;
+	for (int i = 0; i < accessor->count; i++) {
+		int dstOffset = outElementSize * i;
+		int srcOffset = srcStride * i;
+		memcpy(*pOutBuffer + dstOffset, pSrc + srcOffset, copySize);
+	}
+
+	return accessor->count;
+}
+
+// TODO: Validate that element size matches source...
+void ProcessVertexAttributeData(Rendering::MeshCreateInfo& meshInfo, cgltf_attribute* attr, u8* bufferData) {
+	u8** pOutBuffer = nullptr;
+	size_t outElementSize = 0;
+
+	if (attr->type == cgltf_attribute_type_position) {
+		outElementSize = sizeof(glm::vec3);
+		pOutBuffer = (u8**)&meshInfo.position;
+	}
+	else if (attr->type == cgltf_attribute_type_texcoord && attr->index == 0) {
+		outElementSize = sizeof(glm::vec2);
+		pOutBuffer = (u8**)&meshInfo.texcoord0;
+	}
+	else if (attr->type == cgltf_attribute_type_normal) {
+		outElementSize = sizeof(glm::vec3);
+		pOutBuffer = (u8**)&meshInfo.normal;
+	}
+	else if (attr->type == cgltf_attribute_type_tangent) {
+		outElementSize = sizeof(glm::vec4);
+		pOutBuffer = (u8**)&meshInfo.tangent;
+	}
+	else if (attr->type == cgltf_attribute_type_color && attr->index == 0) {
+		outElementSize = sizeof(Rendering::Color);
+		pOutBuffer = (u8**)&meshInfo.color;
+	}
+	else {
+		DEBUG_LOG("Unsupported buffer \"%d\", ignoring!", attr->type);
+		return;
+	}
+
+	meshInfo.vertexCount = ProcessVertexBuffer(attr->data, pOutBuffer, outElementSize, bufferData);
+}
 
 /**
  * Process the next main command.
@@ -104,6 +216,14 @@ extern "C" void android_main(struct android_app *app) {
 	GetAstcPayload(devTexBuffer, &texInfo.pixels);
 
 	Rendering::TextureHandle devTexHandle = renderer.CreateTexture("dev", texInfo);
+	free(devTexBuffer);
+
+	devTexBuffer = (u8*)AllocFileBytes("textures/tv_albedo.astc", devTexSize, app->activity->assetManager);
+	GetAstcInfo(devTexBuffer, texInfo.width, texInfo.height, texInfo.compression);
+	GetAstcPayload(devTexBuffer, &texInfo.pixels);
+
+	Rendering::TextureHandle tvAlbedoHandle = renderer.CreateTexture("tv_albedo", texInfo);
+	free(devTexBuffer);
 
 	r32 playAreaWidth, playAreaDepth;
 	xrInstance.GetSpaceDimensions(playAreaWidth, playAreaDepth);
@@ -215,6 +335,67 @@ extern "C" void android_main(struct android_app *app) {
 
 	Rendering::MeshHandle cubeMesh = renderer.CreateMesh("Cube", cubeInfo);
 
+	// Load gltf
+	u32 duckFileSize;
+	char* buf = AllocFileBytes("models/tv.gltf", duckFileSize, app->activity->assetManager);
+	cgltf_options options{};
+	cgltf_data* data = nullptr;
+	cgltf_result result = cgltf_parse(&options, buf, duckFileSize, &data);
+	if (result != cgltf_result_success) {
+		DEBUG_ERROR("Failed to load gltf :c");
+	}
+
+	u8 *buffer = nullptr;
+	if (data->buffers_count > 0) {
+		cgltf_buffer &gltfBuffer = data->buffers[0];
+		u32 bufferSize;
+		char fname[1024];
+		sprintf(fname, "models/%s", gltfBuffer.uri);
+		buffer = (u8*)AllocFileBytes(fname, bufferSize, app->activity->assetManager);
+	}
+
+	// Load first mesh
+	Rendering::MeshHandle gltfMesh;
+	if (data->meshes_count > 0 && buffer != nullptr) {
+		cgltf_mesh &mesh = data->meshes[0];
+		DEBUG_LOG("Loading mesh %s", mesh.name);
+		if (mesh.primitives_count > 0) {
+			cgltf_primitive &prim = mesh.primitives[0];
+			if (prim.type == cgltf_primitive_type_triangles) {
+				Rendering::MeshCreateInfo meshInfo{};
+				for (int i = 0; i < prim.attributes_count; i++) {
+					cgltf_attribute &attr = prim.attributes[i];
+					ProcessVertexAttributeData(meshInfo, &attr, buffer);
+				}
+
+				size_t indexCount = ProcessVertexBuffer(prim.indices, (u8**)&meshInfo.triangles, sizeof(u32), buffer);
+				meshInfo.triangleCount = indexCount / 3;
+				DEBUG_LOG("Mesh triangle count = %d", meshInfo.triangleCount);
+
+				gltfMesh = renderer.CreateMesh("tv", meshInfo);
+
+				if (meshInfo.position != nullptr) {
+					free(meshInfo.position);
+				}
+				if (meshInfo.texcoord0 != nullptr) {
+					free(meshInfo.texcoord0);
+				}
+				if (meshInfo.normal != nullptr) {
+					free(meshInfo.normal);
+				}
+				if (meshInfo.tangent != nullptr) {
+					free(meshInfo.tangent);
+				}
+				if (meshInfo.color != nullptr) {
+					free(meshInfo.color);
+				}
+				free(meshInfo.triangles);
+			}
+		}
+	}
+
+	cgltf_free(data);
+
 	Rendering::ShaderDataLayout shaderLayout{};
 	shaderLayout.dataSize = 0;
 	shaderLayout.propertyCount = 0;
@@ -237,6 +418,9 @@ extern "C" void android_main(struct android_app *app) {
 	matInfo.data.textures[0] = devTexHandle;
 
 	Rendering::MaterialHandle material = renderer.CreateMaterial("TestMat", matInfo);
+
+	matInfo.data.textures[0] = tvAlbedoHandle;
+	Rendering::MaterialHandle tvMaterial = renderer.CreateMaterial("TVMat", matInfo);
 
 	//u64 time = GetTickCount64();
 
@@ -274,7 +458,13 @@ extern "C" void android_main(struct android_app *app) {
 			xrInstance.GetCameraData(xrDisplayTime, 0.01f, 100.0f, camData);
 			renderer.UpdateCameraRaw(camData);
 
+			// Drwa room
 			renderer.DrawMesh(cubeMesh, material, glm::mat4(1.0f));
+
+			// Draw TV
+			glm::mat4 tvTransform = glm::translate(glm::mat4(1.0f), glm::vec3(0.0, 1.0f, -roomHalfDepth + 0.5f));
+			renderer.DrawMesh(gltfMesh, tvMaterial, tvTransform);
+
 			renderer.Render(xrSwapchainImageIndex);
 
 			xrInstance.ReleaseSwapchainImage();
