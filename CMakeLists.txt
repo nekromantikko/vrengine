@@ -18,8 +18,7 @@ FetchContent_Declare(
         OpenXR
         URL_HASH MD5=924a94a2da0b5ef8e82154c623d88644
         URL https://github.com/KhronosGroup/OpenXR-SDK-Source/archive/refs/tags/release-1.0.34.zip
-        SOURCE_DIR
-        openxr
+        SOURCE_DIR openxr
 )
 FetchContent_MakeAvailable(OpenXR)
 
@@ -27,10 +26,17 @@ FetchContent_Declare(
         GLM
         URL_HASH MD5=7d235d4813a2e7b1e10cc711b8e25213
         URL https://github.com/g-truc/glm/releases/download/1.0.1/glm-1.0.1-light.zip
-        SOURCE_DIR
-        glm
+        SOURCE_DIR glm
 )
 FetchContent_MakeAvailable(GLM)
+
+FetchContent_Declare(
+        cgltf
+        URL_HASH MD5=bdaae97902a7a011b1dac6eb5acc1245
+        URL https://github.com/jkuhlmann/cgltf/archive/refs/tags/v1.14.zip
+        SOURCE_DIR cgltf
+)
+FetchContent_MakeAvailable(cgltf)
 
 # Files
 set(SOURCES
@@ -63,6 +69,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
         "${openxr_SOURCE_DIR}/external/include"
         # From glm repo
         "${glm_SOURCE_DIR}"
+        "${cgltf_SOURCE_DIR}"
         )
 
 # export ANativeActivity_onCreate for java to call.
