@@ -3,13 +3,14 @@
 #extension GL_EXT_multiview : enable
 
 layout(location = 0) in vec3 app_pos;
-//layout(location = 1) in vec2 app_uv;
-vec2 app_uv = vec2(0.0);
+layout(location = 1) in vec2 app_uv;
+//vec2 app_uv = vec2(0.0);
 //layout(location = 2) in vec3 app_normal;
 vec3 app_normal = vec3(0.0);
 //layout(location = 3) in vec4 app_tangent;
 vec4 app_tangent = vec4(0.0);
-layout(location = 4) in vec4 app_color;
+//layout(location = 4) in vec4 app_color;
+vec4 app_color = vec4(1.0);
 
 layout(binding = 0) uniform CameraData
 {

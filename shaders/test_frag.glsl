@@ -16,5 +16,5 @@ void main() {
 	stereoColor.r *= 1 - gl_ViewIndex;
 	stereoColor.g *= gl_ViewIndex;
 
-	outColor = vec4(v_color.rgb, 1.0);
+	outColor = vec4(v_uv.rg, 0.0, 1.0);
 }
