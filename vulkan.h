@@ -140,9 +140,9 @@ namespace Rendering {
 
 		s32 GetDeviceMemoryTypeIndex(u32 typeFilter, VkMemoryPropertyFlags propertyFlags);
 		VkCommandBuffer GetTemporaryCommandBuffer();
-		void AllocateMemory(VkMemoryRequirements requirements, VkMemoryPropertyFlags properties, VkDeviceMemory& outMemory);
-		void AllocateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memProps, Buffer& outBuffer);
-		void AllocateImage(VkImage image, VkMemoryPropertyFlags memProps, VkDeviceMemory& outMemory);
+        void AllocateMemory(VkMemoryRequirements requirements, VkMemoryPropertyFlags properties, VkDeviceMemory& outMemory);
+        VkDeviceSize AllocateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memProps, Buffer& outBuffer);
+        VkDeviceSize AllocateImage(VkImage image, VkMemoryPropertyFlags memProps, VkDeviceMemory& outMemory);
 		void CopyBuffer(const VkBuffer& src, const VkBuffer& dst, VkDeviceSize size);
 		void CopyRawDataToBuffer(void* src, const VkBuffer& dst, VkDeviceSize size);
 		void FreeBuffer(const Buffer& buffer);
