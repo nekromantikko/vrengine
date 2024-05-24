@@ -731,7 +731,7 @@ namespace Rendering {
 		}
 	}
 
-	void Vulkan::AllocateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memProps, Buffer& outBuffer) {
+    VkDeviceSize Vulkan::AllocateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memProps, Buffer& outBuffer) {
 		VkBufferCreateInfo bufferInfo{};
 		bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 		bufferInfo.pNext = nullptr;
@@ -766,9 +766,11 @@ namespace Rendering {
 		AllocateMemory(memRequirements.memoryRequirements, memProps, outBuffer.memory);
 
 		vkBindBufferMemory(device, outBuffer.buffer, outBuffer.memory, 0);
+
+        return memRequirements.memoryRequirements.size;
 	}
 
-	void Vulkan::AllocateImage(VkImage image, VkMemoryPropertyFlags memProps, VkDeviceMemory& outMemory) {
+    VkDeviceSize Vulkan::AllocateImage(VkImage image, VkMemoryPropertyFlags memProps, VkDeviceMemory& outMemory) {
 		VkImageMemoryRequirementsInfo2 requirementsInfo{};
 		requirementsInfo.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_REQUIREMENTS_INFO_2;
 		requirementsInfo.pNext = nullptr;
@@ -789,6 +791,8 @@ namespace Rendering {
 
 		AllocateMemory(memRequirements.memoryRequirements, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, outMemory);
 		vkBindImageMemory(device, image, outMemory, 0);
+
+        return memRequirements.memoryRequirements.size;
 	}
 
 	void Vulkan::CopyBuffer(const VkBuffer& src, const VkBuffer& dst, VkDeviceSize size) {
@@ -1379,7 +1383,7 @@ namespace Rendering {
 
 		vkCreateImage(device, &imageInfo, nullptr, &texture->image);
 
-		AllocateImage(texture->image, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, texture->memory);
+		VkDeviceSize imageBytes = AllocateImage(texture->image, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, texture->memory);
 
 		VkImageViewCreateInfo viewInfo{};
 		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -1418,10 +1422,6 @@ namespace Rendering {
 
 		// Copy data
 		Buffer stagingBuffer;
-		VkDeviceSize imageBytes = info.width * info.height * 4;
-		if (info.type == TEXTURE_CUBEMAP) {
-			imageBytes *= 6;
-		}
 		AllocateBuffer(imageBytes, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer);
 
 		void* data;
