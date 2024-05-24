@@ -300,6 +300,11 @@ namespace XR {
 
 				break;
 			}
+				case XR_TYPE_EVENT_DATA_REFERENCE_SPACE_CHANGE_PENDING:
+				{
+					// TODO: Update room geometry
+					break;
+				}
 			default:
 				break;
 			}
@@ -358,6 +363,20 @@ namespace XR {
 		outProj[2][2] = -farClip / depth;
 		outProj[3][2] = -(farClip * nearClip) / depth;
 		outProj[2][3] = -1.0f;
+	}
+
+	bool XRInstance::GetSpaceDimensions(r32& outWidth, r32& outHeight) {
+		if (session == XR_NULL_HANDLE) {
+			DEBUG_LOG("No session to begin frame");
+			return false;
+		}
+
+		XrExtent2Df bounds;
+		xrGetReferenceSpaceBoundsRect(session, XR_REFERENCE_SPACE_TYPE_STAGE, &bounds);
+		outWidth = bounds.width;
+		outHeight = bounds.height;
+
+		return true;
 	}
 
 	bool XRInstance::GetCameraData(s64 displayTime, r32 nearClip, r32 farClip, Rendering::CameraData& outData) {

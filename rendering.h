@@ -84,12 +84,32 @@ namespace Rendering {
 		TEXTURE_CUBEMAP
 	};
 
+	enum TextureCompression
+	{
+		TEXCOMPRESSION_NONE = 0,
+		TEXCOMPRESSION_ASTC_4x4 = (4 << 4) | (4 << 8),
+		TEXCOMPRESSION_ASTC_5x4 = (5 << 4) | (4 << 8),
+		TEXCOMPRESSION_ASTC_5x5 = (5 << 4) | (5 << 8),
+		TEXCOMPRESSION_ASTC_6x5 = (6 << 4) | (5 << 8),
+		TEXCOMPRESSION_ASTC_6x6 = (6 << 4) | (6 << 8),
+		TEXCOMPRESSION_ASTC_8x5 = (8 << 4) | (5 << 8),
+		TEXCOMPRESSION_ASTC_8x6 = (8 << 4) | (6 << 8),
+		TEXCOMPRESSION_ASTC_8x8 = (8 << 4) | (8 << 8),
+		TEXCOMPRESSION_ASTC_10x5 = (10 << 4) | (5 << 8),
+		TEXCOMPRESSION_ASTC_10x6 = (10 << 4) | (6 << 8),
+		TEXCOMPRESSION_ASTC_10x8 = (10 << 4) | (8 << 8),
+		TEXCOMPRESSION_ASTC_10x10 = (10 << 4) | (10 << 8),
+		TEXCOMPRESSION_ASTC_12x10 = (12 << 4) | (10 << 8),
+		TEXCOMPRESSION_ASTC_12x12 = (12 << 4) | (12 << 8),
+	};
+
 	struct TextureCreateInfo
 	{
 		u32 width, height;
 		TextureType type;
 		ColorSpace space;
 		TextureFilter filter;
+		TextureCompression compression;
 		bool generateMips;
 		u8* pixels;
 	};
