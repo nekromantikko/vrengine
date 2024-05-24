@@ -1295,15 +1295,59 @@ namespace Rendering {
 		VkFormat format = VK_FORMAT_UNDEFINED;
 		u32 layerCount = info.type == TEXTURE_CUBEMAP ? 6 : 1;
 
-		switch (info.space) {
-		case COLORSPACE_SRGB:
-			format = VK_FORMAT_R8G8B8A8_SRGB;
-			break;
-		case COLORSPACE_LINEAR:
-			format = VK_FORMAT_R8G8B8A8_UNORM;
-			break;
-		default:
-			break;
+		switch (info.compression) {
+			case TEXCOMPRESSION_NONE:
+				format = VK_FORMAT_R8G8B8A8_SRGB;
+				break;
+			case TEXCOMPRESSION_ASTC_4x4:
+				format = VK_FORMAT_ASTC_4x4_SRGB_BLOCK;
+				break;
+			case TEXCOMPRESSION_ASTC_5x4:
+				format = VK_FORMAT_ASTC_5x4_SRGB_BLOCK;
+				break;
+			case TEXCOMPRESSION_ASTC_5x5:
+				format = VK_FORMAT_ASTC_5x5_SRGB_BLOCK;
+				break;
+			case TEXCOMPRESSION_ASTC_6x5:
+				format = VK_FORMAT_ASTC_6x5_SRGB_BLOCK;
+				break;
+			case TEXCOMPRESSION_ASTC_6x6:
+				format = VK_FORMAT_ASTC_6x6_SRGB_BLOCK;
+				break;
+			case TEXCOMPRESSION_ASTC_8x5:
+				format = VK_FORMAT_ASTC_8x5_SRGB_BLOCK;
+				break;
+			case TEXCOMPRESSION_ASTC_8x6:
+				format = VK_FORMAT_ASTC_8x6_SRGB_BLOCK;
+				break;
+			case TEXCOMPRESSION_ASTC_8x8:
+				format = VK_FORMAT_ASTC_8x8_SRGB_BLOCK;
+				break;
+			case TEXCOMPRESSION_ASTC_10x5:
+				format = VK_FORMAT_ASTC_10x5_SRGB_BLOCK;
+				break;
+			case TEXCOMPRESSION_ASTC_10x6:
+				format = VK_FORMAT_ASTC_10x6_SRGB_BLOCK;
+				break;
+			case TEXCOMPRESSION_ASTC_10x8:
+				format = VK_FORMAT_ASTC_10x8_SRGB_BLOCK;
+				break;
+			case TEXCOMPRESSION_ASTC_10x10:
+				format = VK_FORMAT_ASTC_10x10_SRGB_BLOCK;
+				break;
+			case TEXCOMPRESSION_ASTC_12x10:
+				format = VK_FORMAT_ASTC_12x10_SRGB_BLOCK;
+				break;
+			case TEXCOMPRESSION_ASTC_12x12:
+				format = VK_FORMAT_ASTC_12x12_SRGB_BLOCK;
+				break;
+			default:
+				break;
+		}
+
+		if (info.space == COLORSPACE_LINEAR) {
+			// Stupid hack...
+			(*((int*)(&format)))++;
 		}
 
 		u32 mipCount = 1;

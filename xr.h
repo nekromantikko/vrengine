@@ -45,6 +45,7 @@ namespace XR {
 		void Update(r32 dt);
 		bool BeginFrame(s64& outPredictedDisplayTime);
 		bool GetCameraData(s64 displayTime, r32 nearClip, r32 farClip, Rendering::CameraData& outData);
+		bool GetSpaceDimensions(r32& outWidth, r32& outHeight);
 		bool EndFrame(s64 displayTime);
 
 		// Vulkan implementation

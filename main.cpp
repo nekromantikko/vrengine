@@ -6,6 +6,7 @@
 #include "system.h"
 #include "renderer.h"
 #include "xr.h"
+#include "astc.h"
 
 static bool running;
 static Rendering::Renderer* rendererPtr; // Stupid hack...
@@ -91,43 +92,123 @@ extern "C" void android_main(struct android_app *app) {
 	renderer.CreateXRSwapchain(&xrInstance);
 	xrInstance.RequestStartSession();
 
+	// Test render stuff
+	u32 devTexSize;
+	u8* devTexBuffer = (u8*)AllocFileBytes("textures/dev.astc", devTexSize, app->activity->assetManager);
+	Rendering::TextureCreateInfo texInfo{};
+	texInfo.type = Rendering::TEXTURE_2D;
+	texInfo.generateMips = false;
+	texInfo.space = Rendering::COLORSPACE_SRGB;
+	texInfo.filter = Rendering::TEXFILTER_LINEAR;
+	GetAstcInfo(devTexBuffer, texInfo.width, texInfo.height, texInfo.compression);
+	GetAstcPayload(devTexBuffer, &texInfo.pixels);
+
+	Rendering::TextureHandle devTexHandle = renderer.CreateTexture("dev", texInfo);
+
+	r32 playAreaWidth, playAreaDepth;
+	xrInstance.GetSpaceDimensions(playAreaWidth, playAreaDepth);
+	DEBUG_LOG("Roomscale dimensions = (%f, %f)", playAreaWidth, playAreaDepth);
+
+	// Add padding around play area
+	const u32 roomWidth = playAreaWidth + 2.0f;
+	const u32 roomDepth = playAreaDepth + 2.0f;
+
+	r32 roomHalfWidth = roomWidth / 2.0f;
+	r32 roomHalfDepth = roomDepth / 2.0f;
+
+	r32 roomHeight = 2.5f;
+
 	Rendering::MeshCreateInfo cubeInfo{};
 	glm::vec3 cubeVerts[] = {
-		{-1,-1,-1},
-		{1,-1,-1},
-		{1,-1,1},
-		{-1,-1,1},
-		{-1,1,-1},
-		{1,1,-1},
-		{1,1,1},
-		{-1,1,1}
+		// Floor
+		{-roomHalfWidth,0,roomHalfDepth},
+		{roomHalfWidth,0,roomHalfDepth},
+		{roomHalfWidth,0,-roomHalfDepth},
+		{-roomHalfWidth,0,-roomHalfDepth},
+
+		// Ceiling
+		{roomHalfWidth,roomHeight,roomHalfDepth},
+		{-roomHalfWidth,roomHeight,roomHalfDepth},
+		{-roomHalfWidth,roomHeight,-roomHalfDepth},
+		{roomHalfWidth,roomHeight,-roomHalfDepth},
+
+		// Front wall
+		{-roomHalfWidth,0,roomHalfDepth},
+		{-roomHalfWidth,roomHeight,roomHalfDepth},
+	{roomHalfWidth,roomHeight,roomHalfDepth},
+		{roomHalfWidth,0,roomHalfDepth},
+
+		// Back wall
+		{roomHalfWidth,0,-roomHalfDepth},
+		{roomHalfWidth,roomHeight,-roomHalfDepth},
+		{-roomHalfWidth,roomHeight,-roomHalfDepth},
+		{-roomHalfWidth,0,-roomHalfDepth},
+
+		// Right wall
+		{roomHalfWidth, 0, roomHalfDepth},
+		{roomHalfWidth, roomHeight, roomHalfDepth},
+		{roomHalfWidth, roomHeight, -roomHalfDepth},
+		{roomHalfWidth, 0, -roomHalfDepth},
+
+		// Left wall
+		{-roomHalfWidth, 0, -roomHalfDepth},
+		{-roomHalfWidth, roomHeight, -roomHalfDepth},
+		{-roomHalfWidth, roomHeight, roomHalfDepth},
+		{-roomHalfWidth, 0, roomHalfDepth},
 	};
-	Rendering::Color cubeColors[] = {
-		{0,0,0,1},
-		{1,0,0,1},
-		{1,0,1,1},
-		{0,0,1,1},
-		{0,1,0,1},
-		{1,1,0,1},
-		{1,1,1,1},
-		{0,1,1,1}
+	Rendering::VertexUV cubeUV[] = {
+		// Floor
+		{roomHalfWidth, -roomHalfDepth},
+		{-roomHalfWidth,-roomHalfDepth},
+		{-roomHalfWidth,roomHalfDepth},
+		{roomHalfWidth,roomHalfDepth},
+
+		// Ceiling
+		{roomHalfWidth, -roomHalfDepth},
+		{-roomHalfWidth,-roomHalfDepth},
+		{-roomHalfWidth,roomHalfDepth},
+		{roomHalfWidth,roomHalfDepth},
+
+		// Front wall
+		{roomHalfWidth, 0},
+		{roomHalfWidth,-roomHeight},
+		{-roomHalfWidth,-roomHeight},
+		{-roomHalfWidth,0},
+
+		// Back wall
+		{roomHalfWidth, 0},
+		{roomHalfWidth,-roomHeight},
+		{-roomHalfWidth,-roomHeight},
+		{-roomHalfWidth,0},
+
+		// Right wall
+		{roomHalfWidth, 0},
+		{roomHalfWidth,-roomHeight},
+		{-roomHalfWidth,-roomHeight},
+		{-roomHalfWidth,0},
+
+			// Left wall
+		{roomHalfWidth, 0},
+		{roomHalfWidth,-roomHeight},
+		{-roomHalfWidth,-roomHeight},
+		{-roomHalfWidth,0},
 	};
-	cubeInfo.vertexCount = 8;
+	cubeInfo.vertexCount = 24;
 	cubeInfo.position = cubeVerts;
-	cubeInfo.color = cubeColors;
+	cubeInfo.texcoord0 = cubeUV;
 	Rendering::Triangle tris[] = {
 		{0,1,2},
 		{0,2,3},
-		{3,6,7},
-		{3,2,6},
-		{6,2,5},
-		{2,1,5},
-		{5,1,0},
-		{5,0,4},
-		{4,0,7},
-		{7,0,3},
-		{7,6,4},
-		{4,6,5}
+		{4,5,6},
+		{4,6,7},
+		{8,9,10},
+		{8,10,11},
+		{12,13,14},
+		{12,14,15},
+		{16,17,18},
+		{16,18,19},
+		{20,21,22},
+		{20,22,23}
 	};
 	cubeInfo.triangleCount = 12;
 	cubeInfo.triangles = tris;
@@ -141,8 +222,8 @@ extern "C" void android_main(struct android_app *app) {
 	Rendering::ShaderCreateInfo shaderInfo{};
 	shaderInfo.metadata.layer = Rendering::RENDER_LAYER_OPAQUE;
 	shaderInfo.metadata.dataLayout = shaderLayout;
-	shaderInfo.vertexInputs = (Rendering::VertexAttribFlags)(Rendering::VERTEX_POSITION_BIT | Rendering::VERTEX_COLOR_BIT);
-	shaderInfo.samplerCount = 0;
+	shaderInfo.vertexInputs = (Rendering::VertexAttribFlags)(Rendering::VERTEX_POSITION_BIT | Rendering::VERTEX_TEXCOORD_0_BIT);
+	shaderInfo.samplerCount = 1;
 	shaderInfo.vertShader = AllocFileBytes("shaders/vert.spv", shaderInfo.vertShaderLength, app->activity->assetManager);
 	shaderInfo.fragShader = AllocFileBytes("shaders/test_frag.spv", shaderInfo.fragShaderLength, app->activity->assetManager);
 
@@ -153,26 +234,9 @@ extern "C" void android_main(struct android_app *app) {
 	Rendering::MaterialCreateInfo matInfo{};
 	matInfo.metadata.shader = shader;
 	matInfo.metadata.castShadows = true;
+	matInfo.data.textures[0] = devTexHandle;
 
 	Rendering::MaterialHandle material = renderer.CreateMaterial("TestMat", matInfo);
-
-	const u32 side = 32;
-	const u32 instanceCount = side * side * side;
-	if (instanceCount > Rendering::maxInstanceCount) {
-		DEBUG_ERROR("too many instances");
-	}
-	const u32 batchCount = (u32)ceil(instanceCount / (r32)Rendering::maxInstanceCountPerDraw);
-	glm::mat4x4* instanceTransforms = (glm::mat4x4*)calloc(instanceCount, sizeof(glm::mat4x4));
-	u32 i = 0;
-	for (int x = 0; x < side; x++) {
-		for (int y = 0; y < side; y++) {
-			for (int z = 0; z < side; z++) {
-				glm::mat4x4& transform = instanceTransforms[i++];
-				transform = glm::translate(glm::mat4x4(1.0f), glm::vec3(0.25f * x, 0.25f * y, 0.25f * z));
-				transform = glm::scale(transform, glm::vec3(0.05f, 0.05f, 0.05f));
-			}
-		}
-	}
 
 	//u64 time = GetTickCount64();
 
@@ -210,9 +274,7 @@ extern "C" void android_main(struct android_app *app) {
 			xrInstance.GetCameraData(xrDisplayTime, 0.01f, 100.0f, camData);
 			renderer.UpdateCameraRaw(camData);
 
-			for (int i = 0; i < batchCount; i++) {
-				renderer.DrawMeshInstanced(cubeMesh, material, Rendering::maxInstanceCountPerDraw, instanceTransforms + Rendering::maxInstanceCountPerDraw *i);
-			}
+			renderer.DrawMesh(cubeMesh, material, glm::mat4(1.0f));
 			renderer.Render(xrSwapchainImageIndex);
 
 			xrInstance.ReleaseSwapchainImage();
