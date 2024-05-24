@@ -302,16 +302,16 @@ extern "C" void android_main(struct android_app *app) {
 		{-roomHalfWidth,0},
 
 		// Right wall
-		{roomHalfWidth, 0},
-		{roomHalfWidth,-roomHeight},
-		{-roomHalfWidth,-roomHeight},
-		{-roomHalfWidth,0},
+		{roomHalfDepth, 0},
+		{roomHalfDepth,-roomHeight},
+		{-roomHalfDepth,-roomHeight},
+		{-roomHalfDepth,0},
 
 			// Left wall
-		{roomHalfWidth, 0},
-		{roomHalfWidth,-roomHeight},
-		{-roomHalfWidth,-roomHeight},
-		{-roomHalfWidth,0},
+		{roomHalfDepth, 0},
+		{roomHalfDepth,-roomHeight},
+		{-roomHalfDepth,-roomHeight},
+		{-roomHalfDepth,0},
 	};
 	cubeInfo.vertexCount = 24;
 	cubeInfo.position = cubeVerts;
