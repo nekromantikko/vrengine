@@ -44,7 +44,9 @@ set(SOURCES
         "system.cpp"
         "renderer.cpp"
         "vulkan.cpp"
-        "xr.cpp")
+        "xr.cpp"
+        "gltf.cpp"
+        "math.cpp")
 
 set (HEADERS
         "typedef.h"
@@ -52,11 +54,12 @@ set (HEADERS
         "material.h"
         "math.h"
         "memory_pool.h"
-        "quaternion.h"
         "renderer.h"
         "rendering.h"
         "vulkan.h"
-        "xr.h")
+        "xr.h"
+        "astc.h"
+        "gltf.h")
 
 set (GLSL_SHADERS
         "shaders/vert.glsl"

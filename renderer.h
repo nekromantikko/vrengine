@@ -33,7 +33,7 @@ namespace Rendering {
 		MaterialHandle CreateMaterial(std::string name, const MaterialCreateInfo& info);
 
 		void UpdateCameraRaw(const CameraData& data);
-		void UpdateMainLight(const Quaternion& direction, const Color& color);
+		//void UpdateMainLight(const Quaternion& direction, const Color& color);
 		void UpdateAmbientLight(const Color& color);
 		void DrawMesh(MeshHandle mesh, MaterialHandle material, const glm::mat4x4& transform);
 		void DrawMeshInstanced(MeshHandle mesh, MaterialHandle material, u16 count, const glm::mat4x4* transforms);

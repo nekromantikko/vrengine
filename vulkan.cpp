@@ -767,10 +767,10 @@ namespace Rendering {
 
 		vkBindBufferMemory(device, outBuffer.buffer, outBuffer.memory, 0);
 
-        return memRequirements.memoryRequirements.size;
+  return memRequirements.memoryRequirements.size;
 	}
 
-    VkDeviceSize Vulkan::AllocateImage(VkImage image, VkMemoryPropertyFlags memProps, VkDeviceMemory& outMemory) {
+  VkDeviceSize Vulkan::AllocateImage(VkImage image, VkMemoryPropertyFlags memProps, VkDeviceMemory& outMemory) {
 		VkImageMemoryRequirementsInfo2 requirementsInfo{};
 		requirementsInfo.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_REQUIREMENTS_INFO_2;
 		requirementsInfo.pNext = nullptr;
@@ -1755,7 +1755,7 @@ namespace Rendering {
 		vkCmdPipelineBarrier(frame.cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, 0, 1, &barrier, 0, nullptr, 0, nullptr);
 	}
 	void Vulkan::TransferInstanceBufferData(u32 offset, u32 size) {
-		if (offset + size > instanceDataSize) {
+		if (offset + size > maxInstanceCount) {
 			DEBUG_ERROR("Buffer copy size too large");
 		}
 
@@ -1770,8 +1770,8 @@ namespace Rendering {
 		vkCmdPipelineBarrier(frame.cmdBuffer, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 1, &barrier, 0, nullptr, 0, nullptr);
 
 		VkBufferCopy copyRegion{};
-		copyRegion.srcOffset = offset;
-		copyRegion.dstOffset = offset;
+		copyRegion.srcOffset = offset * instanceDataElementSize;
+		copyRegion.dstOffset = offset * instanceDataElementSize;
 		copyRegion.size = size * instanceDataElementSize;
 
 		vkCmdCopyBuffer(frame.cmdBuffer, instanceHostBuffer.buffer, instanceDeviceBuffer.buffer, 1, &copyRegion);
