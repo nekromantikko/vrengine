@@ -56,13 +56,14 @@ namespace XR {
 		const char* const extensionNames[] = {
 		"XR_KHR_vulkan_enable",
 		"XR_KHR_vulkan_enable2",
+		"XR_FB_render_model",
 #ifdef NEKRO_DEBUG
 		"XR_EXT_debug_utils"
 		};
-		createInfo.enabledExtensionCount = 3;
+		createInfo.enabledExtensionCount = 4;
 #else
 		};
-		createInfo.enabledExtensionCount = 2;
+		createInfo.enabledExtensionCount = 3;
 #endif
 		createInfo.enabledExtensionNames = extensionNames;
 
@@ -224,6 +225,76 @@ namespace XR {
 
 		DEBUG_LOG("XR swapchain image count = %d", swapchainImageCount);
 
+		// Create actions
+		// TODO: XrInput class?
+		XrActionSetCreateInfo actionSetInfo{};
+		actionSetInfo.type = XR_TYPE_ACTION_SET_CREATE_INFO;
+		actionSetInfo.next = nullptr;
+		strcpy(actionSetInfo.actionSetName, "action_set_default");
+		strcpy(actionSetInfo.localizedActionSetName, "Default action set"); // TODO: Figure out a good display name for this (Where is this even shown?)
+		actionSetInfo.priority = 0;
+
+		xrCreateActionSet(instance, &actionSetInfo, &actionSet);
+
+		XrActionCreateInfo actionInfo{};
+		actionInfo.type = XR_TYPE_ACTION_CREATE_INFO;
+		actionInfo.next = nullptr;
+		strcpy(actionInfo.actionName, "hand_left");
+		strcpy(actionInfo.localizedActionName, "Left hand"); // TODO: See above
+		actionInfo.actionType = XR_ACTION_TYPE_POSE_INPUT;
+		actionInfo.countSubactionPaths = 0;
+		actionInfo.subactionPaths = nullptr;
+
+		xrCreateAction(actionSet, &actionInfo, &leftHandAction);
+
+		XrActionSpaceCreateInfo actionSpaceInfo{};
+		actionSpaceInfo.type = XR_TYPE_ACTION_SPACE_CREATE_INFO;
+		actionSpaceInfo.next = nullptr;
+		actionSpaceInfo.action = leftHandAction;
+		actionSpaceInfo.subactionPath = XR_NULL_PATH;
+		actionSpaceInfo.poseInActionSpace.position = { 0, 0, 0 };
+		actionSpaceInfo.poseInActionSpace.orientation = { 0, 0, 0, 1 };
+
+		xrCreateActionSpace(session, &actionSpaceInfo, &leftHandSpace);
+
+		strcpy(actionInfo.actionName, "hand_right");
+		strcpy(actionInfo.localizedActionName, "Right hand"); // TODO: See above
+		xrCreateAction(actionSet, &actionInfo, &rightHandAction);
+
+		actionSpaceInfo.action = rightHandAction;
+		xrCreateActionSpace(session, &actionSpaceInfo, &rightHandSpace);
+
+		// Suggest action bindings
+		XrPath leftHandPath, rightHandPath;
+
+		xrStringToPath(instance, "/user/hand/left/input/aim/pose", &leftHandPath);
+		xrStringToPath(instance, "/user/hand/right/input/aim/pose", &rightHandPath);
+
+		XrActionSuggestedBinding suggestedBindings[] = {
+			{leftHandAction, leftHandPath},
+			{rightHandAction, rightHandPath}
+		};
+
+		XrPath interactionProfilePath;
+		xrStringToPath(instance, "/interaction_profiles/oculus/touch_controller", &interactionProfilePath);
+
+		XrInteractionProfileSuggestedBinding suggestedBinding{};
+		suggestedBinding.type = XR_TYPE_INTERACTION_PROFILE_SUGGESTED_BINDING;
+		suggestedBinding.next = nullptr;
+		suggestedBinding.interactionProfile = interactionProfilePath;
+		suggestedBinding.countSuggestedBindings = 2;
+		suggestedBinding.suggestedBindings = suggestedBindings;
+
+		xrSuggestInteractionProfileBindings(instance, &suggestedBinding);
+
+		XrSessionActionSetsAttachInfo actionSetsAttachInfo{};
+		actionSetsAttachInfo.type = XR_TYPE_SESSION_ACTION_SETS_ATTACH_INFO;
+		actionSetsAttachInfo.next = nullptr;
+		actionSetsAttachInfo.countActionSets = 1;
+		actionSetsAttachInfo.actionSets = &actionSet;
+
+		xrAttachSessionActionSets(session, &actionSetsAttachInfo);
+
 		return true;
 	}
 
@@ -232,6 +303,12 @@ namespace XR {
 			DEBUG_LOG("No session to destroy");
 			return false;
 		}
+
+		xrDestroySpace(leftHandSpace);
+		xrDestroyAction(leftHandAction);
+		xrDestroySpace(rightHandSpace);
+		xrDestroyAction(rightHandAction);
+		xrDestroyActionSet(actionSet);
 
 		swapchainImages.clear();
 		xrDestroySwapchain(swapchain);
@@ -336,6 +413,19 @@ namespace XR {
 
 		xrBeginFrame(session, &beginFrameInfo);
 
+		// Input update
+		XrActiveActionSet activeActionSet = {
+			actionSet,
+			XR_NULL_PATH
+		};
+
+		XrActionsSyncInfo syncInfo{};
+		syncInfo.type = XR_TYPE_ACTIONS_SYNC_INFO;
+		syncInfo.countActiveActionSets = 1;
+		syncInfo.activeActionSets = &activeActionSet;
+
+		xrSyncActions(session, &syncInfo);
+
 		return frameState.shouldRender;
 	}
 
@@ -405,6 +495,42 @@ namespace XR {
 
 		return true;
 	}
+
+	bool XRInstance::GetHandTransform(s64 displayTime, HandIndex hand, glm::mat4& outTransform) {
+		if (session == XR_NULL_HANDLE) {
+			DEBUG_LOG("No session to get hand transform");
+			return false;
+		}
+
+		XrPosef pose;
+
+		XrActionStateGetInfo getInfo{};
+		getInfo.type = XR_TYPE_ACTION_STATE_GET_INFO;
+		getInfo.action = hand == VR_HAND_LEFT ? leftHandAction : rightHandAction;
+
+		XrActionStatePose state{};
+		state.type = XR_TYPE_ACTION_STATE_POSE;
+
+		// TODO: Use this for something (It contains velocity maybe?)
+		xrGetActionStatePose(session, &getInfo, &state);
+
+		XrSpaceLocation location{};
+		location.type = XR_TYPE_SPACE_LOCATION;
+
+		XrSpace handSpace = hand == VR_HAND_LEFT ? leftHandSpace : rightHandSpace;
+		xrLocateSpace(handSpace, space, displayTime, &location);
+
+		if (!(location.locationFlags & XR_SPACE_LOCATION_POSITION_VALID_BIT) || !(location.locationFlags & XR_SPACE_LOCATION_ORIENTATION_VALID_BIT)) {
+			return false;
+		}
+
+		const glm::vec3 pos = glm::vec3(location.pose.position.x, location.pose.position.y, location.pose.position.z);
+		const glm::quat rot = glm::quat(location.pose.orientation.w, location.pose.orientation.x, location.pose.orientation.y, location.pose.orientation.z);
+
+		outTransform = glm::translate(glm::mat4x4(1.0f), pos) * glm::mat4_cast(rot);
+
+		return true;
+}
 
 	bool XRInstance::EndFrame(s64 displayTime) {
 		if (session == XR_NULL_HANDLE) {

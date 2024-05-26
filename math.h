@@ -2,6 +2,7 @@
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm.hpp>
+#include <gtc/quaternion.hpp>
 #include "typedef.h"
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
@@ -17,3 +18,5 @@ T clamp(T val, T min, T max)
 	const T t = val < min ? min : val;
 	return t > max ? max : t;
 }
+
+glm::quat AverageQuaternionsLogarithm(const glm::quat& q1, const glm::quat& q2);

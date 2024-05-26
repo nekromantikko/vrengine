@@ -29,6 +29,11 @@ namespace XR {
 		char requiredExtensions[REQUIRED_VULKAN_EXTENSION_NAME_BUFFER_SIZE];
 	};
 
+	enum HandIndex {
+		VR_HAND_LEFT = 0,
+		VR_HAND_RIGHT = 1
+	};
+
 	class XRInstance {
 	public:
 		XRInstance(android_app *app);
@@ -45,6 +50,7 @@ namespace XR {
 		void Update(r32 dt);
 		bool BeginFrame(s64& outPredictedDisplayTime);
 		bool GetCameraData(s64 displayTime, r32 nearClip, r32 farClip, Rendering::CameraData& outData);
+		bool GetHandTransform(s64 displayTime, HandIndex hand, glm::mat4& outTransform);
 		bool GetSpaceDimensions(r32& outWidth, r32& outHeight);
 		bool EndFrame(s64 displayTime);
 
@@ -81,6 +87,12 @@ namespace XR {
 		b32 requestedSessionState = false;
 
 		XrSpace space = XR_NULL_HANDLE;
+
+		XrActionSet actionSet = XR_NULL_HANDLE;
+		XrSpace leftHandSpace = XR_NULL_HANDLE;
+		XrAction leftHandAction = XR_NULL_HANDLE;
+		XrSpace rightHandSpace = XR_NULL_HANDLE;
+		XrAction rightHandAction = XR_NULL_HANDLE;
 
 		XrSwapchain swapchain = XR_NULL_HANDLE;
 		std::vector<XrSwapchainImageVulkanKHR> swapchainImages;

@@ -107,12 +107,12 @@ namespace Rendering {
 		*cameraData = data;
 	}
 
-	void Renderer::UpdateMainLight(const Quaternion& rotation, const Color& color) {
+	/*void Renderer::UpdateMainLight(const Quaternion& rotation, const Color& color) {
 		lightingData->mainLightColor = color;
 		static const r32 shadowmapArea = 25.0f;
 		lightingData->mainLightProjMat = glm::ortho(-shadowmapArea / 2.0f, shadowmapArea / 2.0f, shadowmapArea / 2.0f, -shadowmapArea / 2.0f, -1024.0f, 1024.0f);
 		lightingData->mainLightDirection = -glm::vec4(rotation*glm::vec3(0.0f, 0.0f, 1.0f), 0.0);
-	}
+	}*/
 
 	void Renderer::UpdateAmbientLight(const Color& color) {
 		lightingData->ambientColor = color;
@@ -148,11 +148,7 @@ namespace Rendering {
 
 		vulkan.BeginRenderCommands();
 		vulkan.TransferUniformBufferData();
-		static bool32 firstFrameRendered = false;
-		if (!firstFrameRendered) {
-			vulkan.TransferInstanceBufferData(0, instanceCount);
-			firstFrameRendered = true;
-		}
+		vulkan.TransferInstanceBufferData(0, instanceCount);
 		vulkan.BeginForwardRenderPass(xrSwapchainImageIndex);
 
 		MeshHandle previousMesh = -1;

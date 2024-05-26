@@ -3,7 +3,7 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm.hpp>
 #include <gtc/matrix_transform.hpp>
-#include "quaternion.h"
+#include "typedef.h"
 
 namespace Rendering {
 	constexpr u32 maxMaterialCount = 256;
