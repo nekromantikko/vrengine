@@ -265,9 +265,15 @@ namespace Rendering {
 		std::vector<VkExtensionProperties> availableExtensions(extensionCount);
 		vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, availableExtensions.data());
 
+		DEBUG_LOG("Available device extension count = %d", extensionCount);
+		for (auto& extension : availableExtensions) {
+			DEBUG_LOG("Available device extension: %s", extension.extensionName);
+		}
+
 		bool hasSwapchainSupport = false;
 		bool hasFormatListSupport = false;
 		bool hasImagelessSupport = false;
+		bool hasLoadOpNoneSupport = false;
 		for (const auto& extension : availableExtensions) {
 			if (!hasSwapchainSupport && strcmp(extension.extensionName, VK_KHR_SWAPCHAIN_EXTENSION_NAME) == 0) {
 				hasSwapchainSupport = true;
@@ -278,9 +284,12 @@ namespace Rendering {
 			else if (!hasFormatListSupport && strcmp(extension.extensionName, "VK_KHR_image_format_list") == 0) {
 				hasFormatListSupport = true;
 			}
+			else if (!hasLoadOpNoneSupport && strcmp(extension.extensionName, "VK_QCOM_render_pass_store_ops") == 0) {
+				hasLoadOpNoneSupport = true;
+			}
 		}
 
-		if (!hasSwapchainSupport || !hasImagelessSupport || !hasFormatListSupport) {
+		if (!hasSwapchainSupport || !hasImagelessSupport || !hasFormatListSupport || !hasLoadOpNoneSupport) {
 			return false;
 		}
 
@@ -363,7 +372,8 @@ namespace Rendering {
 		
 		extensionNames.push_back("VK_KHR_image_format_list");
 		extensionNames.push_back("VK_KHR_imageless_framebuffer");
-		createInfo.enabledExtensionCount += 2;
+		extensionNames.push_back("VK_QCOM_render_pass_store_ops");
+		createInfo.enabledExtensionCount += 3;
 
 		createInfo.ppEnabledExtensionNames = (char**)extensionNames.data();
 
@@ -398,13 +408,11 @@ namespace Rendering {
 		attachmentDescription.flags = 0;
 		attachmentDescription.format = VK_FORMAT_R8G8B8A8_SRGB;
 		attachmentDescription.samples = VK_SAMPLE_COUNT_4_BIT;
-		attachmentDescription.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR; //temporary: clear before drawing. Change later to VK_ATTACHMENT_LOAD_OP_LOAD
-		attachmentDescription.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		attachmentDescription.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		attachmentDescription.storeOp = VK_ATTACHMENT_STORE_OP_NONE_QCOM;
 		attachmentDescription.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 		attachmentDescription.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		//attachmentDescription.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-		//attachmentDescription.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-		attachmentDescription.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED; //this is also temporary for testing purposes
+		attachmentDescription.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		attachmentDescription.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 		VkAttachmentDescription depthDescription{};
@@ -412,7 +420,7 @@ namespace Rendering {
 		depthDescription.format = VK_FORMAT_D32_SFLOAT;
 		depthDescription.samples = VK_SAMPLE_COUNT_4_BIT;
 		depthDescription.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		depthDescription.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		depthDescription.storeOp = VK_ATTACHMENT_STORE_OP_NONE_QCOM;
 		depthDescription.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 		depthDescription.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		depthDescription.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -505,7 +513,7 @@ namespace Rendering {
 
 		vkCreateImage(device, &imageInfo, nullptr, &colorAttachment.image);
 
-		AllocateImage(colorAttachment.image, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, colorAttachment.memory); // Use VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT if available
+		AllocateImage(colorAttachment.image, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT, colorAttachment.memory);
 
 		VkImageViewCreateInfo viewInfo{};
 		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -525,7 +533,7 @@ namespace Rendering {
 		imageInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 		imageInfo.samples = VK_SAMPLE_COUNT_4_BIT;
 		vkCreateImage(device, &imageInfo, nullptr, &depthAttachment.image);
-		AllocateImage(depthAttachment.image, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, depthAttachment.memory); // Use VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT if available
+		AllocateImage(depthAttachment.image, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT, depthAttachment.memory);
 		viewInfo.format = VK_FORMAT_D32_SFLOAT;
 		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
 		viewInfo.image = depthAttachment.image;
