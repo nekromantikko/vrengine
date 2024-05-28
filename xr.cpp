@@ -114,8 +114,13 @@ namespace XR {
 			return false;
 		}
 
+		XrSystemRenderModelPropertiesFB renderModelProperties{};
+		renderModelProperties.type = XR_TYPE_SYSTEM_RENDER_MODEL_PROPERTIES_FB;
+		renderModelProperties.next = nullptr;
+
 		system.properties = XrSystemProperties{};
 		system.properties.type = XR_TYPE_SYSTEM_PROPERTIES;
+		system.properties.next = &renderModelProperties;
 
 		xrGetSystemProperties(instance, system.id, &system.properties);
 
@@ -126,6 +131,9 @@ namespace XR {
 			DEBUG_LOG("HMD does not support multiview :c");
 			return false;
 		}
+		if (renderModelProperties.supportsRenderModelLoading) {
+			DEBUG_LOG("System supports render model loading!");
+		} else DEBUG_ERROR("System does not support render model loading");
 
 		// Check for proper tracking support
 		if (!system.properties.trackingProperties.orientationTracking || !system.properties.trackingProperties.positionTracking) {
@@ -295,6 +303,24 @@ namespace XR {
 
 		xrAttachSessionActionSets(session, &actionSetsAttachInfo);
 
+		// Render model stuff
+		PFN_xrEnumerateRenderModelPathsFB xrEnumerateRenderModelPathsFB;
+		xrGetInstanceProcAddr(instance, "xrEnumerateRenderModelPathsFB", (PFN_xrVoidFunction*)&xrEnumerateRenderModelPathsFB);
+
+		u32 renderModelPathCount;
+		xrEnumerateRenderModelPathsFB(session, 0, &renderModelPathCount, nullptr);
+		std::vector<XrRenderModelPathInfoFB> renderModelPaths(renderModelPathCount);
+		xrEnumerateRenderModelPathsFB(session, renderModelPathCount, &renderModelPathCount, renderModelPaths.data());
+
+		// TODO: Util function DebugPrintPath()?
+		for (auto& path : renderModelPaths) {
+			u32 strLength;
+			xrPathToString(instance, path.path, 0, &strLength, nullptr);
+			std::vector<char> pathStr(strLength);
+			xrPathToString(instance, path.path, strLength, &strLength, pathStr.data());
+			DEBUG_LOG("Found render model path: %s", pathStr.data());
+		}
+
 		return true;
 	}
 
@@ -340,6 +366,57 @@ namespace XR {
 			sessionState == XR_SESSION_STATE_VISIBLE ||
 			sessionState == XR_SESSION_STATE_FOCUSED ||
 			sessionState == XR_SESSION_STATE_STOPPING;
+	}
+
+	bool XRInstance::GetControllerGeometry(HandIndex hand, u8** outBuffer, u32& outSize) {
+		if (session == XR_NULL_HANDLE) {
+			DEBUG_LOG("No session to get controller geometry");
+			return false;
+		}
+
+		XrPath path;
+		xrStringToPath(instance, hand == VR_HAND_LEFT ? "/model_fb/controller/left" : "/model_fb/controller/right", &path);
+
+		XrRenderModelPathInfoFB modelPathInfo{};
+		modelPathInfo.type = XR_TYPE_RENDER_MODEL_PATH_INFO_FB;
+		modelPathInfo.next = nullptr;
+		modelPathInfo.path = path;
+
+		XrRenderModelCapabilitiesRequestFB capabilities{};
+		capabilities.type = XR_TYPE_RENDER_MODEL_CAPABILITIES_REQUEST_FB;
+		capabilities.next = nullptr;
+
+		XrRenderModelPropertiesFB properties{};
+		properties.type = XR_TYPE_RENDER_MODEL_PROPERTIES_FB;
+		properties.next = &capabilities;
+
+		PFN_xrGetRenderModelPropertiesFB xrGetRenderModelPropertiesFB;
+		xrGetInstanceProcAddr(instance, "xrGetRenderModelPropertiesFB", (PFN_xrVoidFunction*)&xrGetRenderModelPropertiesFB);
+
+		xrGetRenderModelPropertiesFB(session, path, &properties);
+
+		XrRenderModelLoadInfoFB loadInfo{};
+		loadInfo.type = XR_TYPE_RENDER_MODEL_LOAD_INFO_FB;
+		loadInfo.next = nullptr;
+		loadInfo.modelKey = properties.modelKey;
+
+		XrRenderModelBufferFB modelBuffer{};
+		modelBuffer.type = XR_TYPE_RENDER_MODEL_BUFFER_FB;
+		modelBuffer.next = nullptr;
+		modelBuffer.bufferCapacityInput = 0;
+
+		PFN_xrLoadRenderModelFB xrLoadRenderModelFB;
+		xrGetInstanceProcAddr(instance, "xrLoadRenderModelFB", (PFN_xrVoidFunction*)&xrLoadRenderModelFB);
+
+		xrLoadRenderModelFB(session, &loadInfo, &modelBuffer);
+		*outBuffer = (u8*)calloc(modelBuffer.bufferCountOutput, sizeof(u8));
+		modelBuffer.bufferCapacityInput = modelBuffer.bufferCountOutput;
+		modelBuffer.buffer = *outBuffer;
+		xrLoadRenderModelFB(session, &loadInfo, &modelBuffer);
+
+		outSize = modelBuffer.bufferCountOutput;
+
+		return true;
 	}
 
 	// Update loop

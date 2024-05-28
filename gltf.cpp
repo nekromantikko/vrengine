@@ -112,29 +112,44 @@ void ProcessVertexAttributeData(Rendering::MeshCreateInfo& meshInfo, cgltf_attri
 	meshInfo.vertexCount = ProcessVertexBuffer(attr->data, pOutBuffer, outElementSize);
 }
 
+bool LoadGLTF(const u8* const buf, u32 bufferSize, cgltf_data** outData, AAssetManager *assetManager) {
+	cgltf_options options{};
+	cgltf_result result = cgltf_parse(&options, buf, bufferSize, outData);
+	if (result != cgltf_result_success) {
+		DEBUG_LOG("Failed to load gltf :c");
+		return false;
+	}
+
+	if ((*outData)->file_type == cgltf_file_type_glb) {
+		cgltf_load_buffers(&options, *outData, nullptr);
+	}
+
+	return true;
+}
+
 bool LoadGLTF(const char* path, const char* fname, cgltf_data** outData, AAssetManager *assetManager) {
 	char filePath[1024];
 	sprintf(filePath, "%s/%s", path, fname);
 
 	u32 fileSize;
-	char* buf = AllocFileBytes(filePath, fileSize, assetManager);
-	cgltf_options options{};
-	cgltf_result result = cgltf_parse(&options, buf, fileSize, outData);
-	if (result != cgltf_result_success) {
-		DEBUG_ERROR("Failed to load gltf :c");
+	u8* buf = (u8*)AllocFileBytes(filePath, fileSize, assetManager);
+
+	if (!LoadGLTF(buf, fileSize, outData, assetManager)) {
 		return false;
 	}
 
 	free(buf);
 
 	// Load buffers
-	for (int i = 0; i < (*outData)->buffers_count; i++) {
-		cgltf_buffer &gltfBuffer = (*outData)->buffers[i];
-		u32 bufferSize;
-		char bufferPath[1024];
-		sprintf(bufferPath, "%s/%s", path, gltfBuffer.uri);
-		gltfBuffer.data = (void*)AllocFileBytes(bufferPath, bufferSize, assetManager);
-		gltfBuffer.data_free_method = cgltf_data_free_method_memory_free;
+	if ((*outData)->file_type == cgltf_file_type_gltf) {
+		for (int i = 0; i < (*outData)->buffers_count; i++) {
+			cgltf_buffer &gltfBuffer = (*outData)->buffers[i];
+			u32 bufferSize;
+			char bufferPath[1024];
+			sprintf(bufferPath, "%s/%s", path, gltfBuffer.uri);
+			gltfBuffer.data = (void*)AllocFileBytes(bufferPath, bufferSize, assetManager);
+			gltfBuffer.data_free_method = cgltf_data_free_method_memory_free;
+		}
 	}
 
 	return true;
@@ -148,7 +163,7 @@ void FreeGLTFData(cgltf_data* data) {
 	cgltf_free(data);
 }
 
-bool GetGLTFMeshInfo(const cgltf_data* const data, const char* meshName, Rendering::MeshCreateInfo& outMeshInfo) {
+bool FindGLTFMeshByName(const cgltf_data* const data, const char* meshName, cgltf_mesh& outMesh) {
 	if (data == nullptr) {
 		DEBUG_LOG("Data is null!");
 		return false;
@@ -169,12 +184,18 @@ bool GetGLTFMeshInfo(const cgltf_data* const data, const char* meshName, Renderi
 		return false;
 	}
 
-	if (foundMesh->primitives_count == 0) {
-		DEBUG_LOG("Mesh %s has no primitives", meshName);
+	outMesh = *foundMesh;
+	return true;
+}
+
+// TODO:  Support multiple primitives
+bool GetGLTFMeshInfo(const cgltf_mesh& mesh, Rendering::MeshCreateInfo& outMeshInfo) {
+	if (mesh.primitives_count == 0) {
+		DEBUG_LOG("Mesh %s has no primitives", mesh.name);
 		return false;
 	}
 
-	cgltf_primitive &prim = foundMesh->primitives[0];
+	cgltf_primitive &prim = mesh.primitives[0];
 	if (prim.type != cgltf_primitive_type_triangles) {
 		DEBUG_LOG("Only triangles supported for now");
 		return false;
@@ -190,4 +211,12 @@ bool GetGLTFMeshInfo(const cgltf_data* const data, const char* meshName, Renderi
 	DEBUG_LOG("Mesh triangle count = %d", outMeshInfo.triangleCount);
 
 	return true;
+}
+
+void DebugPrintNodes(const cgltf_node* const node, u32 indent) {
+	DEBUG_LOG("%*s%s", indent, "->", node->name);
+	for (int i = 0; i < node->children_count; i++) {
+		auto child = node->children[i];
+		DebugPrintNodes(child, indent + 1);
+	}
 }

@@ -18,6 +18,45 @@ struct AndroidAppState {
 	bool resumed = false;
 };
 
+bool CreateGLTFMesh(Rendering::Renderer& renderer, const cgltf_mesh& mesh, Rendering::MeshHandle& outMeshHandle) {
+	Rendering::MeshCreateInfo meshInfo{};
+	if (!GetGLTFMeshInfo(mesh, meshInfo)) {
+		DEBUG_LOG("Failed to get mesh!");
+		return false;
+	}
+
+	outMeshHandle = renderer.CreateMesh(mesh.name, meshInfo);
+
+	if (meshInfo.position != nullptr) {
+		free(meshInfo.position);
+	}
+	if (meshInfo.texcoord0 != nullptr) {
+		free(meshInfo.texcoord0);
+	}
+	if (meshInfo.normal != nullptr) {
+		free(meshInfo.normal);
+	}
+	if (meshInfo.tangent != nullptr) {
+		free(meshInfo.tangent);
+	}
+	if (meshInfo.color != nullptr) {
+		free(meshInfo.color);
+	}
+	free(meshInfo.triangles);
+
+	return true;
+}
+
+bool CreateGLTFMesh(Rendering::Renderer& renderer, const cgltf_data* const data, const char* meshName, Rendering::MeshHandle& outMeshHandle) {
+	cgltf_mesh mesh;
+	if (!FindGLTFMeshByName(data, meshName, mesh)) {
+		DEBUG_LOG("Cannot find mesh %s", meshName);
+		return false;
+	}
+
+	return CreateGLTFMesh(renderer, mesh, outMeshHandle);
+}
+
 /**
  * Process the next main command.
  */
@@ -233,118 +272,35 @@ extern "C" void android_main(struct android_app *app) {
 	Rendering::MeshHandle cubeMesh = renderer.CreateMesh("Cube", cubeInfo);
 
 	// Load gltf
-	cgltf_data* tvData = nullptr;
-	if (!LoadGLTF("models", "tv.gltf", &tvData, app->activity->assetManager)) {
+	cgltf_data* gltfData = nullptr;
+	Rendering::MeshHandle tvMesh;
+	if (!LoadGLTF("models", "tv.gltf", &gltfData, app->activity->assetManager)) {
 		DEBUG_ERROR("Failed to load TV asset!");
 	}
-	Rendering::MeshCreateInfo meshInfo;
-	if (!GetGLTFMeshInfo(tvData, "Mesh.010", meshInfo)) {
-		DEBUG_ERROR("Failed to get TV mesh!");
+	if (!CreateGLTFMesh(renderer, gltfData, "Mesh.010", tvMesh)) {
+		DEBUG_ERROR("Failed to create TV mesh");
 	}
-
-	Rendering::MeshHandle tvMesh = renderer.CreateMesh("tv", meshInfo);
-
-	if (meshInfo.position != nullptr) {
-		free(meshInfo.position);
-	}
-	if (meshInfo.texcoord0 != nullptr) {
-		free(meshInfo.texcoord0);
-	}
-	if (meshInfo.normal != nullptr) {
-		free(meshInfo.normal);
-	}
-	if (meshInfo.tangent != nullptr) {
-		free(meshInfo.tangent);
-	}
-	if (meshInfo.color != nullptr) {
-		free(meshInfo.color);
-	}
-	free(meshInfo.triangles);
-
-	FreeGLTFData(tvData);
+	FreeGLTFData(gltfData);
 
 	// Load hands
-	cgltf_data* handsData = nullptr;
-	if (!LoadGLTF("models", "hands.gltf", &handsData, app->activity->assetManager)) {
+	Rendering::MeshHandle handsMesh;
+	if (!LoadGLTF("models", "hands.gltf", &gltfData, app->activity->assetManager)) {
 		DEBUG_ERROR("Failed to load hand asset!");
 	}
-	if (!GetGLTFMeshInfo(handsData, "hand_left", meshInfo)) {
-		DEBUG_ERROR("Failed to get left hand mesh!");
+	if (!CreateGLTFMesh(renderer, gltfData, "Mesh.004", handsMesh)) {
+		DEBUG_ERROR("Failed to create hand meshes");
 	}
-	Rendering::MeshHandle leftHandMesh = renderer.CreateMesh("hand_left", meshInfo);
-
-	// TODO: Make this an util or struct destructor or something...
-	if (meshInfo.position != nullptr) {
-		free(meshInfo.position);
-	}
-	if (meshInfo.texcoord0 != nullptr) {
-		free(meshInfo.texcoord0);
-	}
-	if (meshInfo.normal != nullptr) {
-		free(meshInfo.normal);
-	}
-	if (meshInfo.tangent != nullptr) {
-		free(meshInfo.tangent);
-	}
-	if (meshInfo.color != nullptr) {
-		free(meshInfo.color);
-	}
-	free(meshInfo.triangles);
-
-	if (!GetGLTFMeshInfo(handsData, "hand_right", meshInfo)) {
-		DEBUG_ERROR("Failed to get right hand mesh!");
-	}
-	Rendering::MeshHandle rightHandMesh = renderer.CreateMesh("hand_right", meshInfo);
-
-	// TODO: Make this an util or struct destructor or something...
-	if (meshInfo.position != nullptr) {
-		free(meshInfo.position);
-	}
-	if (meshInfo.texcoord0 != nullptr) {
-		free(meshInfo.texcoord0);
-	}
-	if (meshInfo.normal != nullptr) {
-		free(meshInfo.normal);
-	}
-	if (meshInfo.tangent != nullptr) {
-		free(meshInfo.tangent);
-	}
-	if (meshInfo.color != nullptr) {
-		free(meshInfo.color);
-	}
-	free(meshInfo.triangles);
-
-	FreeGLTFData(handsData);
+	FreeGLTFData(gltfData);
 
 	// Load placeholder gamepad
-	cgltf_data* gamepadData = nullptr;
-	if (!LoadGLTF("models", "gamepad.gltf", &handsData, app->activity->assetManager)) {
+	Rendering::MeshHandle gamepadMesh;
+	if (!LoadGLTF("models", "gamepad.gltf", &gltfData, app->activity->assetManager)) {
 		DEBUG_ERROR("Failed to load gamepad asset!");
 	}
-	if (!GetGLTFMeshInfo(handsData, "Mesh.004", meshInfo)) {
-		DEBUG_ERROR("Failed to get gamepad mesh!");
+	if (!CreateGLTFMesh(renderer, gltfData, "Mesh.004", gamepadMesh)) {
+		DEBUG_ERROR("Failed to create gamepad mesh");
 	}
-	Rendering::MeshHandle gamepadMesh = renderer.CreateMesh("gamepad", meshInfo);
-
-	// TODO: Make this an util or struct destructor or something...
-	if (meshInfo.position != nullptr) {
-		free(meshInfo.position);
-	}
-	if (meshInfo.texcoord0 != nullptr) {
-		free(meshInfo.texcoord0);
-	}
-	if (meshInfo.normal != nullptr) {
-		free(meshInfo.normal);
-	}
-	if (meshInfo.tangent != nullptr) {
-		free(meshInfo.tangent);
-	}
-	if (meshInfo.color != nullptr) {
-		free(meshInfo.color);
-	}
-	free(meshInfo.triangles);
-
-	FreeGLTFData(gamepadData);
+	FreeGLTFData(gltfData);
 
 	Rendering::ShaderDataLayout shaderLayout{};
 	shaderLayout.dataSize = 0;
@@ -378,10 +334,11 @@ extern "C" void android_main(struct android_app *app) {
 	const glm::mat4 leftHandControllerOffset = glm::rotate(glm::translate(glm::mat4(1.0f), glm::vec3(0.03686, -0.02571, 0.06465)), -0.2443f, glm::vec3(0,0,1));
 	const glm::mat4 rightHandControllerOffset = glm::rotate(glm::translate(glm::mat4(1.0f), glm::vec3(-0.03686, -0.02571, 0.06465)), 0.2443f, glm::vec3(0,0,1));
 
-	const glm::mat4 leftHandControllerOffsetInverse = glm::inverse(leftHandControllerOffset);
-	const glm::mat4 rightHandControllerOffsetInverse = glm::inverse(rightHandControllerOffset);
-
 	//u64 time = GetTickCount64();
+	bool controllerModelsLoaded = false;
+	std::vector<Rendering::MeshHandle> leftControllerMeshes;
+	std::vector<Rendering::MeshHandle> rightControllerMeshes;
+	const glm::mat4 controllerPoseCorrection = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.055f));
 
 	while (app->destroyRequested == 0) {
 		// Read all pending events.
@@ -399,6 +356,47 @@ extern "C" void android_main(struct android_app *app) {
 			if (source != nullptr) {
 				source->process(app, source);
 			}
+		}
+
+		if (!controllerModelsLoaded && xrInstance.SessionRunning()) {
+			cgltf_data* controllerData = nullptr;
+			u8* controllerBuffer = nullptr;
+			u32 controllerBufferSize;
+			xrInstance.GetControllerGeometry(XR::VR_HAND_LEFT, &controllerBuffer, controllerBufferSize);
+			if (!LoadGLTF(controllerBuffer, controllerBufferSize, &controllerData, app->activity->assetManager)) {
+				DEBUG_ERROR("Failed to load left controller asset!");
+			}
+
+			free(controllerBuffer);
+
+			for (int i = 0; i < controllerData->meshes_count; i++) {
+				auto& mesh = controllerData->meshes[i];
+				DEBUG_LOG("Found left controller mesh %s", mesh.name);
+				Rendering::MeshHandle meshHandle;
+				CreateGLTFMesh(renderer, mesh, meshHandle);
+				leftControllerMeshes.push_back(meshHandle);
+			}
+
+			FreeGLTFData(controllerData);
+
+			xrInstance.GetControllerGeometry(XR::VR_HAND_RIGHT, &controllerBuffer, controllerBufferSize);
+			if (!LoadGLTF(controllerBuffer, controllerBufferSize, &controllerData, app->activity->assetManager)) {
+				DEBUG_ERROR("Failed to load right controller asset!");
+			}
+
+			free(controllerBuffer);
+
+			for (int i = 0; i < controllerData->meshes_count; i++) {
+				auto& mesh = controllerData->meshes[i];
+				DEBUG_LOG("Found right controller mesh %s", mesh.name);
+				Rendering::MeshHandle meshHandle;
+				CreateGLTFMesh(renderer, mesh, meshHandle);
+				rightControllerMeshes.push_back(meshHandle);
+			}
+
+			FreeGLTFData(controllerData);
+
+			controllerModelsLoaded = true;
 		}
 
 		/*u64 newTime = GetTickCount64();
@@ -422,20 +420,26 @@ extern "C" void android_main(struct android_app *app) {
 			bool rightHandVisible = false;
 			glm::mat4 leftHandTransform = glm::mat4(1.0);
 			if (xrInstance.GetHandTransform(xrDisplayTime, XR::VR_HAND_LEFT, leftHandTransform)) {
-				//renderer.DrawMesh(leftHandMesh, handsMaterial, leftHandTransform);
-				//renderer.DrawMesh(gamepadMesh, material, leftHandTransform * leftHandControllerOffset);
+				if (controllerModelsLoaded) {
+					for (auto& meshHandle : leftControllerMeshes) {
+						renderer.DrawMesh(meshHandle, material, leftHandTransform * controllerPoseCorrection);
+					}
+				}
 				leftHandVisible = true;
 			}
 			glm::mat4 rightHandTransform = glm::mat4(1.0);
 			if (xrInstance.GetHandTransform(xrDisplayTime, XR::VR_HAND_RIGHT, rightHandTransform)) {
-				//renderer.DrawMesh(rightHandMesh, handsMaterial, rightHandTransform);
-				//renderer.DrawMesh(gamepadMesh, material, rightHandTransform * rightHandControllerOffset);
+				if (controllerModelsLoaded) {
+					for (auto& meshHandle : rightControllerMeshes) {
+						renderer.DrawMesh(meshHandle, material, rightHandTransform * controllerPoseCorrection);
+					}
+				}
 				rightHandVisible = true;
 			}
 
 			if (leftHandVisible || rightHandVisible) {
-				const glm::mat4 gamepadLeftTransform = leftHandTransform * leftHandControllerOffset;
-				const glm::mat4 gamepadRightTransform = rightHandTransform * rightHandControllerOffset;
+				const glm::mat4 gamepadLeftTransform = leftHandTransform * controllerPoseCorrection;
+				const glm::mat4 gamepadRightTransform = rightHandTransform * controllerPoseCorrection;
 
 				const glm::quat gamepadLeftRot = glm::quat_cast(gamepadLeftTransform);
 				const glm::quat gamepadRightRot = glm::quat_cast(gamepadRightTransform);
@@ -452,8 +456,7 @@ extern "C" void android_main(struct android_app *app) {
 				}
 
 				renderer.DrawMesh(gamepadMesh, material, gamepadTransform);
-				renderer.DrawMesh(leftHandMesh, handsMaterial, gamepadTransform * leftHandControllerOffsetInverse);
-				renderer.DrawMesh(rightHandMesh, handsMaterial, gamepadTransform * rightHandControllerOffsetInverse);
+				renderer.DrawMesh(handsMesh, handsMaterial, gamepadTransform);
 			}
 
 			// Draw room

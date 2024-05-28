@@ -47,6 +47,7 @@ namespace XR {
 		void RequestEndSession();
 		bool SessionRunning() const;
 
+		bool GetControllerGeometry(HandIndex hand, u8** outBuffer, u32& outSize);
 		void Update(r32 dt);
 		bool BeginFrame(s64& outPredictedDisplayTime);
 		bool GetCameraData(s64 displayTime, r32 nearClip, r32 farClip, Rendering::CameraData& outData);
