@@ -287,7 +287,7 @@ extern "C" void android_main(struct android_app *app) {
 	if (!LoadGLTF("models", "hands.gltf", &gltfData, app->activity->assetManager)) {
 		DEBUG_ERROR("Failed to load hand asset!");
 	}
-	if (!CreateGLTFMesh(renderer, gltfData, "Mesh.004", handsMesh)) {
+	if (!CreateGLTFMesh(renderer, gltfData, "handsShape", handsMesh)) {
 		DEBUG_ERROR("Failed to create hand meshes");
 	}
 	FreeGLTFData(gltfData);
@@ -331,8 +331,8 @@ extern "C" void android_main(struct android_app *app) {
 	matInfo.data.textures[0] = handsAlbedoHandle;
 	Rendering::MaterialHandle handsMaterial = renderer.CreateMaterial("HandsMat", matInfo);
 
-	const glm::mat4 leftHandControllerOffset = glm::rotate(glm::translate(glm::mat4(1.0f), glm::vec3(0.03686, -0.02571, 0.06465)), -0.2443f, glm::vec3(0,0,1));
-	const glm::mat4 rightHandControllerOffset = glm::rotate(glm::translate(glm::mat4(1.0f), glm::vec3(-0.03686, -0.02571, 0.06465)), 0.2443f, glm::vec3(0,0,1));
+	const glm::mat4 leftHandControllerOffset = glm::rotate(glm::translate(glm::mat4(1.0f), glm::vec3(0.038f, -0.025f, 0.004f)), glm::radians(-9.4f), glm::vec3(0,0,1));
+	const glm::mat4 rightHandControllerOffset = glm::rotate(glm::translate(glm::mat4(1.0f), glm::vec3(-0.038f, -0.025f, 0.004f)), glm::radians(9.4f), glm::vec3(0,0,1));
 
 	//u64 time = GetTickCount64();
 	bool controllerModelsLoaded = false;
@@ -438,8 +438,8 @@ extern "C" void android_main(struct android_app *app) {
 			}
 
 			if (leftHandVisible || rightHandVisible) {
-				const glm::mat4 gamepadLeftTransform = leftHandTransform * controllerPoseCorrection;
-				const glm::mat4 gamepadRightTransform = rightHandTransform * controllerPoseCorrection;
+				const glm::mat4 gamepadLeftTransform = leftHandTransform * controllerPoseCorrection * leftHandControllerOffset;
+				const glm::mat4 gamepadRightTransform = rightHandTransform * controllerPoseCorrection * rightHandControllerOffset;
 
 				const glm::quat gamepadLeftRot = glm::quat_cast(gamepadLeftTransform);
 				const glm::quat gamepadRightRot = glm::quat_cast(gamepadRightTransform);
