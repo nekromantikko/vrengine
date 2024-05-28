@@ -16,7 +16,7 @@
 #define DEBUG_LOG(fmt, ...) DEBUG_PRINT(ANDROID_LOG_DEBUG, fmt, ##__VA_ARGS__)
 
 #undef DEBUG_ERROR
-#define DEBUG_ERROR(fmt, ...) DEBUG_PRINT(ANDROID_LOG_FATAL, fmt, ##__VA_ARGS__); abort()
+#define DEBUG_ERROR(fmt, ...) {DEBUG_PRINT(ANDROID_LOG_FATAL, fmt, ##__VA_ARGS__); abort();}
 
 void Print(int prio, const char* fmt, ...);
 char* AllocFileBytes(const char* fname, u32& outLength, AAssetManager *assetManager);

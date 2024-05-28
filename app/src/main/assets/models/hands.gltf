@@ -8,25 +8,20 @@
 		{
 			"name":"Scene",
 			"nodes":[
-				0,
-				1
+				0
 			]
 		}
 	],
 	"nodes":[
 		{
 			"mesh":0,
-			"name":"hand_right"
-		},
-		{
-			"mesh":1,
-			"name":"hand_left"
+			"name":"hands"
 		}
 	],
 	"materials":[
 		{
 			"doubleSided":true,
-			"name":"lambert1.003",
+			"name":"lambert1.004",
 			"pbrMetallicRoughness":{
 				"baseColorFactor":[
 					0.5,
@@ -41,7 +36,7 @@
 	],
 	"meshes":[
 		{
-			"name":"hand_right",
+			"name":"Mesh.004",
 			"primitives":[
 				{
 					"attributes":{
@@ -53,145 +48,73 @@
 					"material":0
 				}
 			]
-		},
-		{
-			"name":"hand_left",
-			"primitives":[
-				{
-					"attributes":{
-						"POSITION":4,
-						"NORMAL":5,
-						"TEXCOORD_0":6
-					},
-					"indices":7,
-					"material":0
-				}
-			]
 		}
 	],
 	"accessors":[
 		{
 			"bufferView":0,
 			"componentType":5126,
-			"count":1105,
+			"count":2210,
 			"max":[
-				0.08164369314908981,
-				0.058980632573366165,
-				0.23239991068840027
+				0.13353624939918518,
+				0.05968380719423294,
+				0.16810251772403717
 			],
 			"min":[
-				-0.035651251673698425,
-				-0.06695223599672318,
-				0.02039448916912079
+				-0.1335362195968628,
+				-0.057025667279958725,
+				-0.043902937322854996
 			],
 			"type":"VEC3"
 		},
 		{
 			"bufferView":1,
 			"componentType":5126,
-			"count":1105,
+			"count":2210,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":2,
 			"componentType":5126,
-			"count":1105,
+			"count":2210,
 			"type":"VEC2"
 		},
 		{
 			"bufferView":3,
 			"componentType":5123,
-			"count":5721,
-			"type":"SCALAR"
-		},
-		{
-			"bufferView":4,
-			"componentType":5126,
-			"count":1105,
-			"max":[
-				0.0356469489634037,
-				0.05898293852806091,
-				0.23240099847316742
-			],
-			"min":[
-				-0.08164829015731812,
-				-0.06694981455802917,
-				0.020395589992403984
-			],
-			"type":"VEC3"
-		},
-		{
-			"bufferView":5,
-			"componentType":5126,
-			"count":1105,
-			"type":"VEC3"
-		},
-		{
-			"bufferView":6,
-			"componentType":5126,
-			"count":1105,
-			"type":"VEC2"
-		},
-		{
-			"bufferView":7,
-			"componentType":5123,
-			"count":5721,
+			"count":11442,
 			"type":"SCALAR"
 		}
 	],
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":13260,
+			"byteLength":26520,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":13260,
-			"byteOffset":13260,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":8840,
+			"byteLength":26520,
 			"byteOffset":26520,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":11442,
-			"byteOffset":35360,
-			"target":34963
-		},
-		{
-			"buffer":0,
-			"byteLength":13260,
-			"byteOffset":46804,
+			"byteLength":17680,
+			"byteOffset":53040,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":13260,
-			"byteOffset":60064,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":8840,
-			"byteOffset":73324,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":11442,
-			"byteOffset":82164,
+			"byteLength":22884,
+			"byteOffset":70720,
 			"target":34963
 		}
 	],
 	"buffers":[
 		{
-			"byteLength":93608,
+			"byteLength":93604,
 			"uri":"hands.bin"
 		}
 	]
